@@ -1,0 +1,14 @@
+# Internal planning docs and client source files (kept out of the repo)
+/*.docx
+/*.md
+
+# ...except these
+!/README.md
+!/Milestone 1 Progress and Test Guide.md
+
+# Local database backups (SQL dumps)
+/backups/
+
+# OS / editor noise
+.DS_Store
+*.swp
