@@ -5,10 +5,12 @@ Tracking the foundation work. Rule: **extend/harden without breaking anything.**
 | Task | Status |
 |------|--------|
 | 0.1 Run existing CakePHP app locally | ✅ Done (app + login working) |
-| 0.2 Full DB backup + MyISAM → InnoDB migration | ✅ **Done & verified** |
-| 0.3 Laravel API service skeleton (shared DB) | ⏳ Next |
-| 0.4 Auth bridge / SSO (CakePHP ↔ Laravel) | ⏳ Pending |
-| 0.5 Table-ownership map + conventions | ⏳ Pending |
+| 0.2 Full DB backup + MyISAM → InnoDB migration | ✅ Done & verified |
+| 0.3 Laravel API service skeleton (shared DB) | ✅ **Done & verified** |
+| 0.4 Auth bridge / SSO (CakePHP ↔ Laravel) | ✅ **Done & verified** |
+| 0.5 Table-ownership map + conventions | ✅ **Done** (see `TABLE OWNERSHIP & CONVENTIONS.md`) |
+
+**Phase 0 complete.** Both apps run on one shared DB without conflict.
 
 ---
 
@@ -76,3 +78,49 @@ Run in a terminal — should show **InnoDB 49** and **no MyISAM**:
 - Created a department through the app form → saved correctly (writes OK).
 - Confirmed audit-history rows are still written during browsing (write path OK).
 - Compared row counts before/after → **identical, zero data loss.**
+
+---
+
+## ✅ 0.3–0.5 — Laravel API service + Auth bridge (completed)
+
+### What was done
+- Created a **Laravel 12 API** service at `flinkiso-laravel-api/`, pointed at the **same
+  MySQL DB** as CakePHP (file/sync drivers → no Laravel tables pollute the DB).
+- Built the **auth bridge**: Laravel authenticates against the legacy `users` table
+  (`md5(salt.password)`) and issues a **JWT**; protected routes use a `jwt` middleware.
+- Wrote the **table-ownership map** (`TABLE OWNERSHIP & CONVENTIONS.md`).
+
+### What I tested (all passed)
+| Test | Result |
+|------|--------|
+| `GET /api/health` | DB connected, 49 tables ✅ |
+| `POST /api/auth/login` (correct pw) | returns JWT ✅ |
+| `POST /api/auth/login` (wrong pw) | 401 ✅ |
+| `GET /api/me` no token | 401 ✅ |
+| `GET /api/me` with token | returns user claims ✅ |
+| `GET /api/legacy/standards` | reads CakePHP table via Laravel ✅ |
+| CakePHP app after all changes | dashboard/documents/standards all 200 ✅ |
+| DB integrity | 49 tables, all InnoDB, 0 leaked Laravel tables ✅ |
+
+## 🧪 How to test the Laravel API yourself
+
+**Start the Laravel API** (separate terminal):
+```bash
+cd "/home/dev/Documents/noor projects/project_1/flinkiso-laravel-api"
+/opt/lampp/bin/php artisan serve --host=127.0.0.1 --port=8001
+```
+
+Then run:
+```bash
+# 1) health (public)
+curl -s http://127.0.0.1:8001/api/health
+
+# 2) login -> copy the access_token from the response
+curl -s -X POST http://127.0.0.1:8001/api/auth/login \
+  -d "username=admin@flinkiso.local" -d "password=admin@flinkiso.local"
+
+# 3) protected: paste the token
+curl -s http://127.0.0.1:8001/api/me -H "Authorization: Bearer <TOKEN>"
+curl -s http://127.0.0.1:8001/api/legacy/standards -H "Authorization: Bearer <TOKEN>"
+```
+✅ Same username/password as the CakePHP login = the auth bridge works.
