@@ -14,6 +14,17 @@ class Document extends Model
     public $incrementing = false;
     protected $guarded = [];
 
+    protected $casts = [
+        'effective_date' => 'date',
+        'review_due_date' => 'date',
+    ];
+
+    /** ISO identifier, e.g. "Issue 1, Rev 2". */
+    public function getIsoRefAttribute(): string
+    {
+        return 'Issue ' . ($this->issue_number ?? 1) . ', Rev ' . ($this->revision_number ?? 0);
+    }
+
     /** Allowed lifecycle transitions: from => [to...]. */
     public const TRANSITIONS = [
         'draft' => ['review'],
