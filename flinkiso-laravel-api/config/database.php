@@ -64,6 +64,24 @@ return [
             ]) : [],
         ],
 
+        // Read-only connection to the legacy FlinkISO (CakePHP) database.
+        // Used for authentication (users) and reference data (standards).
+        // The QMS app never writes here.
+        'flinkiso' => [
+            'driver' => 'mysql',
+            'host' => env('FLINKISO_DB_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('FLINKISO_DB_PORT', env('DB_PORT', '3306')),
+            'database' => env('FLINKISO_DB_DATABASE', 'flinkisodb'),
+            'username' => env('FLINKISO_DB_USERNAME', 'flinkisodb'),
+            'password' => env('FLINKISO_DB_PASSWORD', ''),
+            'unix_socket' => env('FLINKISO_DB_SOCKET', env('DB_SOCKET', '')),
+            'charset' => 'utf8',
+            'collation' => 'utf8_general_ci',
+            'prefix' => '',
+            'strict' => false,
+            'engine' => null,
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),

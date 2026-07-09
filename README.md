@@ -6,21 +6,30 @@ Part 11, 13485 and 17025.
 
 ## Architecture (hybrid)
 
-The system runs **two applications on one shared MySQL database**, so existing
+The system runs **two applications, each with its own database**, so existing
 functionality is preserved while new modules are built on a modern stack.
 
-| Component | Role |
-|-----------|------|
-| `flinkiso/` | Legacy **CakePHP 2.10** app. Existing QMS operations. Owns its 49 tables. |
-| `flinkiso-laravel-api/` | New **Laravel 12** API service. New QMS engines. Owns the `qms_*` tables. |
-| FastAPI (planned) | AI microservice for scoring, predictive KPIs and anomaly detection. |
+| Component | Role | Database |
+|-----------|------|----------|
+| `flinkiso/` | Legacy **CakePHP 2.10** app. Existing QMS operations. | `flinkisodb` (owns its 49 tables) |
+| `flinkiso-laravel-api/` | New **Laravel 12** service. New QMS engines + UI + API. | `qmsdb` (owns the `qms_*` tables) |
+| FastAPI (planned) | AI microservice for scoring, predictive KPIs and anomaly detection. | — |
 
-Rules that keep the two apps safe on one database:
+The Laravel app uses **two DB connections**:
 
-- Every table has one owner. CakePHP writes its tables; Laravel writes only `qms_*` tables.
-- Laravel reads legacy tables (for example `users` for authentication) but never writes them.
-- Database engine is InnoDB across all tables (transactions, integrity, crash recovery).
+- default (`qmsdb`) — owns and writes the `qms_*` tables.
+- `flinkiso` (`flinkisodb`) — **read only**, for authentication (`users`) and reference
+  data (`standards`).
+
+Rules that keep the two apps decoupled:
+
+- Every table has one owner. CakePHP writes `flinkisodb`; Laravel writes only `qms_*` in `qmsdb`.
+- Laravel reads the legacy database but never writes to it.
+- Legacy records are referenced from `qms_*` by plain UUID (no cross-database foreign keys).
 - Single sign on: Laravel authenticates against the legacy `users` table and issues a JWT.
+
+> This repository is a **monorepo**: both apps live here. When deploying the Laravel
+> service, point the web server document root at `flinkiso-laravel-api/public`.
 
 ## Tech stack
 

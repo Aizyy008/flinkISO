@@ -7,34 +7,39 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Health + legacy-read endpoints — proves the Laravel service shares the
- * FlinkISO database and can read CakePHP-owned tables.
+ * Health + legacy-read endpoints.
+ * Confirms the QMS database (default) and the legacy FlinkISO database
+ * (read-only 'flinkiso' connection) are both reachable.
  */
 class HealthController extends Controller
 {
     /** GET /api/health */
     public function health(): JsonResponse
     {
-        try {
-            $tables = DB::table('information_schema.tables')
-                ->where('table_schema', DB::getDatabaseName())
-                ->count();
-            $db = ['connected' => true, 'name' => DB::getDatabaseName(), 'tables' => $tables];
-        } catch (\Throwable $e) {
-            $db = ['connected' => false, 'error' => $e->getMessage()];
-        }
-
         return response()->json([
             'service' => 'flinkiso-laravel-api',
             'status' => 'ok',
-            'database' => $db,
+            'qms_db' => $this->probe(null),          // default connection (qmsdb)
+            'legacy_db' => $this->probe('flinkiso'),  // legacy FlinkISO (flinkisodb)
         ]);
     }
 
-    /** GET /api/legacy/standards — reads a CakePHP-owned table (read-only). */
+    private function probe(?string $connection): array
+    {
+        try {
+            $db = DB::connection($connection);
+            $name = $db->getDatabaseName();
+            $tables = $db->table('information_schema.tables')->where('table_schema', $name)->count();
+            return ['connected' => true, 'name' => $name, 'tables' => $tables];
+        } catch (\Throwable $e) {
+            return ['connected' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /** GET /api/legacy/standards — reads a legacy CakePHP-owned table (read-only). */
     public function standards(): JsonResponse
     {
-        $rows = DB::table('standards')
+        $rows = DB::connection('flinkiso')->table('standards')
             ->where('soft_delete', 0)
             ->select('id', 'name')
             ->limit(50)
