@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class FlinkUser extends Model
 {
+    protected $connection = 'flinkiso';   // legacy CakePHP database
     protected $table = 'users';
     public $timestamps = false;      // CakePHP manages created/modified itself
     protected $keyType = 'string';   // UUID varchar(36) primary key

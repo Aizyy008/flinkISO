@@ -30,8 +30,8 @@ class DocumentController extends Controller
     private function refData(): array
     {
         return [
-            'standards' => DB::table('standards')->where('soft_delete', 0)->orderBy('name')->get(['id', 'name']),
-            'users' => DB::table('users')->where('soft_delete', 0)->orderBy('name')->get(['id', 'name', 'username']),
+            'standards' => DB::connection('flinkiso')->table('standards')->where('soft_delete', 0)->orderBy('name')->get(['id', 'name']),
+            'users' => DB::connection('flinkiso')->table('users')->where('soft_delete', 0)->orderBy('name')->get(['id', 'name', 'username']),
         ];
     }
 
@@ -227,7 +227,7 @@ class DocumentController extends Controller
     {
         $document = Document::with(['versions' => fn ($q) => $q->orderByDesc('version')])->findOrFail($id);
         $standard = $document->related_standard_id
-            ? DB::table('standards')->where('id', $document->related_standard_id)->value('name') : null;
+            ? DB::connection('flinkiso')->table('standards')->where('id', $document->related_standard_id)->value('name') : null;
         $approval = AuditTrail::where('entity_type', 'qms_document')->where('entity_id', $id)
             ->whereIn('signature_meaning', ['reviewed', 'approved', 'authorized'])->orderBy('seq')->get();
         $pdf = Pdf::loadView('documents.pdf', compact('document', 'approval', 'standard'));
