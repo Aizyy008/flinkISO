@@ -109,7 +109,7 @@ class CapaController extends Controller
     private function nextReference(): string
     {
         $year = date('Y');
-        $count = Capa::where('reference', 'like', "CAPA-$year-%")->count() + 1;
-        return sprintf('CAPA-%s-%04d', $year, $count);
+        $count = Capa::where('reference', 'like', "CAPA  %")->count() + 1;
+        return sprintf('CAPA %s %04d', $year, $count);
     }
 }

@@ -16,7 +16,12 @@ class Incident extends Model
 
     protected $casts = [
         'detected_date' => 'date',
+        'due_date' => 'date',
     ];
+
+    public const TYPES = ['non_conformity', 'deviation', 'incident', 'complaint', 'near_miss'];
+    public const SEVERITIES = ['low', 'medium', 'high', 'critical'];
+    public const STATUSES = ['open', 'investigating', 'capa_raised', 'closed'];
 
     public function capas()
     {

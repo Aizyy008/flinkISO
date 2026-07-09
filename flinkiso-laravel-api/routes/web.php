@@ -1,7 +1,13 @@
 <?php
 
 use App\Http\Controllers\Web\AuthController;
+use App\Http\Controllers\Web\CapaController;
 use App\Http\Controllers\Web\DocumentController;
+use App\Http\Controllers\Web\EvidenceController;
+use App\Http\Controllers\Web\IncidentController;
+use App\Http\Controllers\Web\NotificationController;
+use App\Http\Controllers\Web\RiskController;
+use App\Http\Controllers\Web\WorkflowController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect('/documents'));
@@ -11,8 +17,10 @@ Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout']);
 
-// Document Control v2 UI (session protected)
+// QMS UI (session protected)
 Route::middleware('webauth')->group(function () {
+
+    // Document Control v2
     Route::get('/documents', [DocumentController::class, 'index']);
     Route::get('/documents/create', [DocumentController::class, 'create']);
     Route::post('/documents', [DocumentController::class, 'store']);
@@ -25,4 +33,43 @@ Route::middleware('webauth')->group(function () {
     Route::post('/documents/{id}/change-request/{cr}/decide', [DocumentController::class, 'decideChangeRequest']);
     Route::post('/documents/{id}/change-request/{cr}/implement', [DocumentController::class, 'implementChangeRequest']);
     Route::post('/documents/{id}/copy', [DocumentController::class, 'issueCopy']);
+
+    // Incidents / Non-conformities
+    Route::get('/incidents', [IncidentController::class, 'index']);
+    Route::get('/incidents/create', [IncidentController::class, 'create']);
+    Route::post('/incidents', [IncidentController::class, 'store']);
+    Route::get('/incidents/{id}', [IncidentController::class, 'show']);
+    Route::post('/incidents/{id}/update', [IncidentController::class, 'update']);
+    Route::post('/incidents/{id}/status', [IncidentController::class, 'updateStatus']);
+
+    // CAPA
+    Route::get('/capa', [CapaController::class, 'index']);
+    Route::get('/capa/create', [CapaController::class, 'create']);
+    Route::post('/capa', [CapaController::class, 'store']);
+    Route::get('/capa/{id}', [CapaController::class, 'show']);
+    Route::post('/capa/{id}/update', [CapaController::class, 'update']);
+    Route::post('/capa/{id}/status', [CapaController::class, 'updateStatus']);
+    Route::post('/capa/{id}/verify', [CapaController::class, 'verify']);
+
+    // Risk register
+    Route::get('/risks', [RiskController::class, 'index']);
+    Route::get('/risks/create', [RiskController::class, 'create']);
+    Route::post('/risks', [RiskController::class, 'store']);
+    Route::get('/risks/{id}', [RiskController::class, 'show']);
+    Route::post('/risks/{id}/update', [RiskController::class, 'update']);
+
+    // Evidence (shared)
+    Route::post('/evidence', [EvidenceController::class, 'store']);
+    Route::get('/evidence/{id}/download', [EvidenceController::class, 'download']);
+
+    // Workflow rules
+    Route::get('/workflows', [WorkflowController::class, 'index']);
+    Route::get('/workflows/create', [WorkflowController::class, 'create']);
+    Route::post('/workflows', [WorkflowController::class, 'store']);
+    Route::post('/workflows/{id}/toggle', [WorkflowController::class, 'toggle']);
+
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/{id}/read', [NotificationController::class, 'markRead']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
 });

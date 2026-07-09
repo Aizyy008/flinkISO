@@ -5,6 +5,7 @@
 # ...except these
 !/README.md
 !/Milestone 1 Progress and Test Guide.md
+!/DEPLOYMENT.md
 
 # Local database backups (SQL dumps)
 /backups/

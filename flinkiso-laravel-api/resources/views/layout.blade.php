@@ -53,10 +53,12 @@
       <span class="logo-mini"><b>Q</b>MS</span>
       <span class="logo-lg"><b>FlinkISO</b> QMS</span>
     </a>
+    @php $qmsUnread = \App\Models\Qms\Notification::where('user_id', session('flink_user')['id'])->where('is_read', false)->count(); @endphp
     <nav class="navbar navbar-static-top" role="navigation">
       <a href="#" class="sidebar-toggle" id="sidebarToggle" role="button"><span class="sr-only">Toggle navigation</span></a>
       <div class="navbar-custom-menu">
         <ul class="nav navbar-nav">
+          <li><a href="/notifications" title="Notifications"><i class="fa fa-bell-o"></i>@if($qmsUnread)<span class="label label-warning">{{ $qmsUnread }}</span>@endif</a></li>
           <li><a href="#"><i class="fa fa-user"></i> <span class="hidden-xs">{{ session('flink_user')['username'] }}</span></a></li>
           <li><a href="#" onclick="document.getElementById('logoutForm').submit();return false;"><i class="fa fa-sign-out"></i> <span class="hidden-xs">Logout</span></a></li>
         </ul>
@@ -70,9 +72,12 @@
       <ul class="sidebar-menu" data-widget="tree">
         <li class="header">QUALITY MANAGEMENT</li>
         <li class="@yield('menu_documents')"><a href="/documents"><i class="fa fa-file-text-o"></i> <span>Document Control</span></a></li>
-        <li class="header">COMING NEXT</li>
-        <li><a href="#"><i class="fa fa-exclamation-triangle"></i> <span>Incidents / CAPA</span></a></li>
-        <li><a href="#"><i class="fa fa-shield"></i> <span>Risk Register</span></a></li>
+        <li class="@yield('menu_incidents')"><a href="/incidents"><i class="fa fa-exclamation-triangle"></i> <span>Incidents</span></a></li>
+        <li class="@yield('menu_capa')"><a href="/capa"><i class="fa fa-wrench"></i> <span>CAPA</span></a></li>
+        <li class="@yield('menu_risks')"><a href="/risks"><i class="fa fa-shield"></i> <span>Risk Register</span></a></li>
+        <li class="header">AUTOMATION</li>
+        <li class="@yield('menu_workflows')"><a href="/workflows"><i class="fa fa-cogs"></i> <span>Workflow rules</span></a></li>
+        <li class="@yield('menu_notifications')"><a href="/notifications"><i class="fa fa-bell-o"></i> <span>Notifications</span> @if($qmsUnread)<span class="pull-right-container"><small class="label pull-right bg-yellow">{{ $qmsUnread }}</small></span>@endif</a></li>
       </ul>
     </section>
   </aside>

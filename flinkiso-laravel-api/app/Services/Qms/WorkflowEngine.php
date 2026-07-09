@@ -92,9 +92,10 @@ class WorkflowEngine
                 return ['type' => 'notify', 'ok' => true];
 
             case 'create_capa':
+                $incidentId = ($ctx['entity_type'] ?? null) === 'qms_incident' ? ($ctx['entity_id'] ?? null) : null;
                 $capa = Capa::create([
-                    'reference' => 'CAPA-' . date('Y') . '-' . strtoupper(Str::random(6)),
-                    'incident_id' => $ctx['entity_id'] ?? null,
+                    'reference' => 'CAPA ' . date('Y') . ' ' . strtoupper(Str::random(6)),
+                    'incident_id' => $incidentId,
                     'type' => $p['type'] ?? 'corrective',
                     'title' => $p['title'] ?? ('Auto CAPA from ' . ($ctx['entity_type'] ?? 'event')),
                     'status' => 'open',
@@ -103,6 +104,10 @@ class WorkflowEngine
                 $this->audit->record('qms_capa', $capa->id, 'create', [
                     'reason' => 'auto-created by workflow',
                 ]);
+                // Move the originating incident to capa_raised.
+                if ($incidentId && ($inc = \App\Models\Qms\Incident::find($incidentId)) && $inc->status === 'open') {
+                    $inc->update(['status' => 'capa_raised']);
+                }
                 return ['type' => 'create_capa', 'ok' => true, 'capa_id' => $capa->id];
 
             default:
