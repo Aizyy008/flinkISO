@@ -58,7 +58,7 @@
       <a href="#" class="sidebar-toggle" id="sidebarToggle" role="button"><span class="sr-only">Toggle navigation</span></a>
       <div class="navbar-custom-menu">
         <ul class="nav navbar-nav">
-          <li><a href="/notifications" title="Notifications"><i class="fa fa-bell-o"></i>@if($qmsUnread)<span class="label label-warning">{{ $qmsUnread }}</span>@endif</a></li>
+          <li><a href="/notifications" title="Notifications"><i class="fa fa-bell-o"></i><span class="label label-warning notif-badge" @if(!$qmsUnread)style="display:none;"@endif>{{ $qmsUnread }}</span></a></li>
           <li><a href="#"><i class="fa fa-user"></i> <span class="hidden-xs">{{ session('flink_user')['username'] }}</span></a></li>
           <li><a href="#" onclick="document.getElementById('logoutForm').submit();return false;"><i class="fa fa-sign-out"></i> <span class="hidden-xs">Logout</span></a></li>
         </ul>
@@ -81,7 +81,7 @@
         <li class="@yield('menu_forms')"><a href="/forms"><i class="fa fa-list-alt"></i> <span>Forms</span></a></li>
         <li class="header">AUTOMATION</li>
         <li class="@yield('menu_workflows')"><a href="/workflows"><i class="fa fa-cogs"></i> <span>Workflow rules</span></a></li>
-        <li class="@yield('menu_notifications')"><a href="/notifications"><i class="fa fa-bell-o"></i> <span>Notifications</span> @if($qmsUnread)<span class="pull-right-container"><small class="label pull-right bg-yellow">{{ $qmsUnread }}</small></span>@endif</a></li>
+        <li class="@yield('menu_notifications')"><a href="/notifications"><i class="fa fa-bell-o"></i> <span>Notifications</span> <span class="pull-right-container"><small class="label pull-right bg-yellow notif-badge" @if(!$qmsUnread)style="display:none;"@endif>{{ $qmsUnread }}</small></span></a></li>
       </ul>
     </section>
   </aside>
@@ -128,5 +128,6 @@
     });
   })();
 </script>
+@yield('scripts')
 </body>
 </html>
