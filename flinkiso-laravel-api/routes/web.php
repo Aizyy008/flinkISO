@@ -1,13 +1,16 @@
 <?php
 
 use App\Http\Controllers\Web\AuthController;
+use App\Http\Controllers\Web\CalibrationController;
 use App\Http\Controllers\Web\CapaController;
 use App\Http\Controllers\Web\DocumentController;
 use App\Http\Controllers\Web\EvidenceController;
+use App\Http\Controllers\Web\FormBridgeController;
 use App\Http\Controllers\Web\HaccpController;
 use App\Http\Controllers\Web\IncidentController;
 use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\RiskController;
+use App\Http\Controllers\Web\TrainingController;
 use App\Http\Controllers\Web\WorkflowController;
 use Illuminate\Support\Facades\Route;
 
@@ -73,6 +76,25 @@ Route::middleware('webauth')->group(function () {
     // Evidence (shared)
     Route::post('/evidence', [EvidenceController::class, 'store']);
     Route::get('/evidence/{id}/download', [EvidenceController::class, 'download']);
+
+    // Training & Competency
+    Route::get('/training', [TrainingController::class, 'index']);
+    Route::get('/training/create', [TrainingController::class, 'create']);
+    Route::post('/training', [TrainingController::class, 'store']);
+    Route::get('/training/{id}', [TrainingController::class, 'show']);
+    Route::post('/training/{id}/assign', [TrainingController::class, 'assign']);
+    Route::post('/training/record/{recordId}/complete', [TrainingController::class, 'complete']);
+
+    // Assets & Calibration
+    Route::get('/assets', [CalibrationController::class, 'index']);
+    Route::get('/assets/create', [CalibrationController::class, 'create']);
+    Route::post('/assets', [CalibrationController::class, 'store']);
+    Route::get('/assets/{id}', [CalibrationController::class, 'show']);
+    Route::post('/assets/{id}/calibration', [CalibrationController::class, 'record']);
+
+    // Form Builder bridge (read legacy custom forms)
+    Route::get('/forms', [FormBridgeController::class, 'index']);
+    Route::get('/forms/{id}', [FormBridgeController::class, 'show']);
 
     // Workflow rules
     Route::get('/workflows', [WorkflowController::class, 'index']);
