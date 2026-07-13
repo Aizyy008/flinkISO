@@ -52,18 +52,17 @@
 <div class="modal fade" id="notifModal" tabindex="-1" role="dialog" aria-labelledby="notifModalTitle">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
-      <div class="modal-header">
+      <div class="modal-header" style="padding:16px 22px;">
         <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
         <h4 class="modal-title" id="notifModalTitle"><i id="notifModalIcon" class="fa fa-bell"></i> <span id="notifModalTitleText"></span></h4>
       </div>
-      <div class="modal-body">
-        <p id="notifModalBody" style="white-space:pre-line;margin-bottom:15px;"></p>
-        <dl class="dl-horizontal" style="margin-bottom:0;">
-          <dt>Type</dt><dd id="notifModalType"></dd>
-          <dt>Received</dt><dd id="notifModalTime"></dd>
-        </dl>
+      <div class="modal-body" style="padding:22px;">
+        <p id="notifModalBody" style="white-space:pre-line;font-size:14px;line-height:1.6;margin:0 0 18px;"></p>
+        <hr style="margin:0 0 16px;">
+        <p style="margin:0 0 8px;"><strong style="display:inline-block;width:90px;">Type</strong><span id="notifModalType"></span></p>
+        <p style="margin:0;"><strong style="display:inline-block;width:90px;">Received</strong><span id="notifModalTime"></span></p>
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer" style="padding:14px 22px;">
         <a href="#" id="notifModalOpen" class="btn btn-primary" style="display:none;"><i class="fa fa-external-link"></i> Open record</a>
         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
       </div>
