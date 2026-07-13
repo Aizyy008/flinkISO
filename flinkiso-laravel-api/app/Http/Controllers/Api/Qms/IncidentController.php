@@ -94,7 +94,7 @@ class IncidentController extends Controller
     private function nextReference(): string
     {
         $year = date('Y');
-        $count = Incident::where('reference', 'like', "INC  %")->count() + 1;
+        $count = Incident::where('reference', 'like', "INC $year %")->count() + 1;
         return sprintf('INC %s %04d', $year, $count);
     }
 }
