@@ -75,6 +75,7 @@
         <li class="@yield('menu_incidents')"><a href="/incidents"><i class="fa fa-exclamation-triangle"></i> <span>Incidents</span></a></li>
         <li class="@yield('menu_capa')"><a href="/capa"><i class="fa fa-wrench"></i> <span>CAPA</span></a></li>
         <li class="@yield('menu_risks')"><a href="/risks"><i class="fa fa-shield"></i> <span>Risk Register</span></a></li>
+        <li class="@yield('menu_haccp')"><a href="/haccp"><i class="fa fa-flask"></i> <span>HACCP</span></a></li>
         <li class="header">AUTOMATION</li>
         <li class="@yield('menu_workflows')"><a href="/workflows"><i class="fa fa-cogs"></i> <span>Workflow rules</span></a></li>
         <li class="@yield('menu_notifications')"><a href="/notifications"><i class="fa fa-bell-o"></i> <span>Notifications</span> @if($qmsUnread)<span class="pull-right-container"><small class="label pull-right bg-yellow">{{ $qmsUnread }}</small></span>@endif</a></li>

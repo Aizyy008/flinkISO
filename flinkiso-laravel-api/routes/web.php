@@ -4,6 +4,7 @@ use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\CapaController;
 use App\Http\Controllers\Web\DocumentController;
 use App\Http\Controllers\Web\EvidenceController;
+use App\Http\Controllers\Web\HaccpController;
 use App\Http\Controllers\Web\IncidentController;
 use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\RiskController;
@@ -50,6 +51,17 @@ Route::middleware('webauth')->group(function () {
     Route::post('/capa/{id}/update', [CapaController::class, 'update']);
     Route::post('/capa/{id}/status', [CapaController::class, 'updateStatus']);
     Route::post('/capa/{id}/verify', [CapaController::class, 'verify']);
+
+    // HACCP / Food Safety (ISO 22000)
+    Route::get('/haccp', [HaccpController::class, 'index']);
+    Route::get('/haccp/create', [HaccpController::class, 'create']);
+    Route::post('/haccp', [HaccpController::class, 'store']);
+    Route::get('/haccp/{id}', [HaccpController::class, 'show']);
+    Route::post('/haccp/{id}/transition', [HaccpController::class, 'transition']);
+    Route::post('/haccp/{id}/step', [HaccpController::class, 'addStep']);
+    Route::post('/haccp/{id}/hazard', [HaccpController::class, 'addHazard']);
+    Route::post('/haccp/{id}/ccp', [HaccpController::class, 'addCcp']);
+    Route::post('/haccp/ccp/{ccpId}/log', [HaccpController::class, 'logCcp']);
 
     // Risk register
     Route::get('/risks', [RiskController::class, 'index']);
