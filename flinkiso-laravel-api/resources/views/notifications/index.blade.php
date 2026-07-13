@@ -59,8 +59,10 @@
       <div class="modal-body" style="padding:22px;">
         <p id="notifModalBody" style="white-space:pre-line;font-size:14px;line-height:1.6;margin:0 0 18px;"></p>
         <hr style="margin:0 0 16px;">
-        <p style="margin:0 0 8px;"><strong style="display:inline-block;width:90px;">Type</strong><span id="notifModalType"></span></p>
-        <p style="margin:0;"><strong style="display:inline-block;width:90px;">Received</strong><span id="notifModalTime"></span></p>
+        <table class="notif-meta"><tbody>
+          <tr><th>Type</th><td id="notifModalType"></td></tr>
+          <tr><th>Received</th><td id="notifModalTime"></td></tr>
+        </tbody></table>
       </div>
       <div class="modal-footer" style="padding:14px 22px;">
         <a href="#" id="notifModalOpen" class="btn btn-primary" style="display:none;"><i class="fa fa-external-link"></i> Open record</a>
@@ -76,6 +78,12 @@
   /* Centre the Bootstrap 3 modal vertically. */
   #notifModal .modal-dialog { display:flex; align-items:center; min-height:calc(100vh - 60px); }
   #notifModal .modal-content { width:100%; }
+  /* Detail rows: fixed label column, left-aligned, no theme interference. */
+  #notifModal .notif-meta { width:100%; border-collapse:collapse; }
+  #notifModal .notif-meta th,
+  #notifModal .notif-meta td { padding:5px 0; vertical-align:top; text-align:left; border:0; font-size:14px; }
+  #notifModal .notif-meta th { width:110px; font-weight:700; color:#555; white-space:nowrap; }
+  #notifModal .notif-meta td { color:#333; }
 </style>
 <script>
 (function () {
