@@ -25,4 +25,5 @@ Route::middleware('webauth')->group(function () {
     Route::post('/documents/{id}/change-request/{cr}/decide', [DocumentController::class, 'decideChangeRequest']);
     Route::post('/documents/{id}/change-request/{cr}/implement', [DocumentController::class, 'implementChangeRequest']);
     Route::post('/documents/{id}/copy', [DocumentController::class, 'issueCopy']);
+    Route::post('/documents/{id}/copy/{copyId}/withdraw', [DocumentController::class, 'withdrawCopy']);
 });
