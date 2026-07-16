@@ -24,23 +24,35 @@
       <div class="box-body">
         <p>
           @include('documents.status', ['status' => $document->status])
-          <span class="text-muted" style="margin-left:10px;">v{{ $document->current_version }} &middot; {{ $document->iso_ref }}</span>
+          <span class="label label-primary" style="margin-left:10px;">v{{ $document->current_version }}</span>
+          <span class="label label-default">Rev {{ $document->revision_number ?? 0 }}</span>
+          <span class="label label-default">Issue {{ $document->issue_number ?? 1 }}</span>
           <span class="text-muted" style="margin-left:10px;">{{ $document->category }}@if($document->document_type) / {{ $document->document_type }}@endif</span>
         </p>
+        <p class="text-muted qms-sign" style="margin-top:-4px;">Lifecycle: Draft → Review → Approved → Released → Obsolete. Approve and Release require an authenticated electronic signature.</p>
         <div style="margin-top:8px;">
           @foreach($allowed as $to)
-            <form method="post" action="/documents/{{ $document->id }}/transition" style="display:inline;">
-              @csrf<input type="hidden" name="to" value="{{ $to }}"><input type="hidden" name="reason" value="{{ ucfirst($to) }} via UI">
-              <button class="btn btn-sm {{ in_array($to,['approved','released'])?'btn-success':'btn-primary' }}">
-                @switch($to)
-                  @case('review') <i class="fa fa-share"></i> Submit for review @break
-                  @case('approved') <i class="fa fa-check"></i> Approve (e-sign) @break
-                  @case('released') <i class="fa fa-unlock-alt"></i> Release (e-sign) @break
-                  @case('obsolete') <i class="fa fa-ban"></i> Mark obsolete @break
-                  @default {{ ucfirst($to) }}
-                @endswitch
+            @if(in_array($to, ['approved','released'], true))
+              <button type="button" class="btn btn-sm btn-success js-sign"
+                data-url="/documents/{{ $document->id }}/transition" data-field="to" data-value="{{ $to }}"
+                data-meaning="{{ $to === 'approved' ? 'Approved' : 'Authorized (Release)' }}"
+                data-label="{{ $to === 'approved' ? 'Approve document' : 'Release document' }}">
+                @if($to === 'approved')<i class="fa fa-check"></i> Approve (e-sign)@else<i class="fa fa-unlock-alt"></i> Release (e-sign)@endif
               </button>
-            </form>
+            @else
+              <form method="post" action="/documents/{{ $document->id }}/transition" style="display:inline;">
+                @csrf<input type="hidden" name="to" value="{{ $to }}">
+                <input type="hidden" name="reason" value="{{ ['review'=>'Submitted for review','obsolete'=>'Marked obsolete','draft'=>'Returned to draft'][$to] ?? ucfirst($to) }}">
+                <button class="btn btn-sm {{ $to==='obsolete' ? 'btn-warning' : ($to==='review' ? 'btn-primary' : 'btn-default') }}">
+                  @switch($to)
+                    @case('review') <i class="fa fa-share"></i> Submit for review @break
+                    @case('obsolete') <i class="fa fa-ban"></i> Mark obsolete @break
+                    @case('draft') <i class="fa fa-reply"></i> Send back to draft @break
+                    @default {{ ucfirst($to) }}
+                  @endswitch
+                </button>
+              </form>
+            @endif
           @endforeach
           @if($editable)
             <button class="btn btn-sm btn-default" data-toggle="collapse" data-target="#editBox"><i class="fa fa-pencil"></i> Edit details</button>
@@ -167,9 +179,9 @@
         <td>@include('documents.status', ['status' => $cr->status])</td>
         <td class="text-right">
           @if($cr->status === 'open')
-            <form method="post" action="/documents/{{ $document->id }}/change-request/{{ $cr->id }}/decide" style="display:inline;">
-              @csrf<input type="hidden" name="decision" value="approved"><button class="btn btn-xs btn-success">Approve</button>
-            </form>
+            <button type="button" class="btn btn-xs btn-success js-sign"
+              data-url="/documents/{{ $document->id }}/change-request/{{ $cr->id }}/decide" data-field="decision" data-value="approved"
+              data-meaning="Approved" data-label="Approve change request {{ $cr->reference }}">Approve (e-sign)</button>
             <form method="post" action="/documents/{{ $document->id }}/change-request/{{ $cr->id }}/decide" style="display:inline;">
               @csrf<input type="hidden" name="decision" value="rejected"><button class="btn btn-xs btn-danger">Reject</button>
             </form>
@@ -202,9 +214,50 @@
     @endif
     @if($document->controlledCopies->count())
     <table class="table table-hover">
-      <thead><tr><th>Holder</th><th>Location</th><th>Version</th><th>Issued</th></tr></thead>
-      <tbody>@foreach($document->controlledCopies as $c)<tr><td>{{ $c->holder }}</td><td>{{ $c->location }}</td><td>v{{ $c->version }}</td><td class="text-muted">{{ $c->issued_at?->format('d M Y, g:i A') }}</td></tr>@endforeach</tbody>
+      <thead><tr><th>Copy #</th><th>Holder</th><th>Location</th><th>Version</th><th>Issued</th><th>Status</th><th class="text-right"></th></tr></thead>
+      <tbody>
+      @foreach($document->controlledCopies as $i => $c)
+      <tr>
+        <td>{{ $i + 1 }}</td><td>{{ $c->holder }}</td><td>{{ $c->location ?: '—' }}</td><td>v{{ $c->version }}</td>
+        <td class="text-muted qms-sign">{{ ($c->issued_at ?? $c->created_at)?->format('d M Y, g:i A') }}</td>
+        <td>@if($c->returned_at)<span class="label label-default">Withdrawn</span>@else<span class="label label-success">Active</span>@endif</td>
+        <td class="text-right">
+          @if(!$c->returned_at)
+          <form method="post" action="/documents/{{ $document->id }}/copy/{{ $c->id }}/withdraw" style="display:inline;">
+            @csrf<button type="button" class="btn btn-xs btn-default js-confirm"
+              data-message="Withdraw the controlled copy issued to &quot;{{ $c->holder }}&quot;? This marks it as returned in the register.">Withdraw</button>
+          </form>
+          @endif
+        </td>
+      </tr>
+      @endforeach
+      </tbody>
     </table>
+    @endif
+  </div>
+</div>
+
+<div class="box box-solid box-info">
+  <div class="box-header with-border"><h3 class="box-title"><i class="fa fa-pencil-square-o"></i> Electronic signatures <small class="qms-sign">21 CFR Part 11 — signer, meaning, reason, time, record</small></h3></div>
+  <div class="box-body no-padding">
+    @if($signatures->count())
+    <table class="table table-hover">
+      <thead><tr><th>Action</th><th>Meaning</th><th>Signed by</th><th>Reason</th><th>Signed at</th><th>Record reference</th></tr></thead>
+      <tbody>
+      @foreach($signatures as $s)
+      <tr>
+        <td style="text-transform:capitalize;">{{ str_replace('_',' ',$s->action) }}</td>
+        <td><span class="label label-info" style="text-transform:capitalize;">{{ $s->meaning }}</span></td>
+        <td>{{ $s->signer_name }} <small class="text-muted">({{ $s->signer_username }})</small></td>
+        <td class="text-muted">{{ $s->reason }}</td>
+        <td class="text-muted qms-sign">{{ $s->signed_at?->format('d M Y, g:i A') }}</td>
+        <td class="text-muted qms-sign"><code>{{ $s->record_reference }}</code></td>
+      </tr>
+      @endforeach
+      </tbody>
+    </table>
+    @else
+    <div class="box-body"><p class="text-muted">No electronic signatures recorded yet. Approve or release the document to sign.</p></div>
     @endif
   </div>
 </div>
@@ -226,5 +279,93 @@
     </table>
   </div>
 </div>
+
+{{-- Electronic signature modal (AdminLTE / Bootstrap 3) --}}
+<div class="modal fade" id="signModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <form method="post" id="signForm">
+      @csrf
+      <input type="hidden" name="_field_holder" id="signHidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h4 class="modal-title"><i class="fa fa-pencil-square-o"></i> Electronic signature</h4>
+        </div>
+        <div class="modal-body">
+          <p>You are about to sign: <strong id="signLabel"></strong></p>
+          <p>Signature meaning: <span class="label label-info" id="signMeaning"></span></p>
+          <div class="form-group">
+            <label>Reason for signing</label>
+            <input type="text" class="form-control" name="reason" id="signReason" placeholder="e.g. Reviewed and approved for release" required>
+          </div>
+          <div class="form-group">
+            <label>Confirm your password <small class="text-muted">(authentication at signing — 21 CFR Part 11)</small></label>
+            <input type="password" class="form-control" name="password" id="signPassword" placeholder="Your FlinkISO password" autocomplete="off" required>
+          </div>
+          <p class="text-muted qms-sign">Signed as <strong>{{ session('flink_user')['username'] }}</strong> at the current server time. This action is recorded in the immutable audit trail.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success"><i class="fa fa-check"></i> Sign</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{{-- Themed confirmation dialog (replaces the browser's native confirm) --}}
+<div class="modal fade" id="confirmModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-sm" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title"><i class="fa fa-question-circle text-yellow"></i> Please confirm</h4>
+      </div>
+      <div class="modal-body"><p id="confirmMessage" style="margin:0;"></p></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirmOk"><i class="fa fa-check"></i> Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var pendingForm = null;
+
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest) return;
+
+    // Electronic signature (Approve / Release / CR approve)
+    var sign = e.target.closest('.js-sign');
+    if (sign) {
+      document.getElementById('signForm').setAttribute('action', sign.getAttribute('data-url'));
+      var h = document.getElementById('signHidden');
+      h.setAttribute('name', sign.getAttribute('data-field'));
+      h.value = sign.getAttribute('data-value');
+      document.getElementById('signLabel').textContent = sign.getAttribute('data-label') || '';
+      document.getElementById('signMeaning').textContent = sign.getAttribute('data-meaning') || '';
+      document.getElementById('signReason').value = '';
+      document.getElementById('signPassword').value = '';
+      jQuery('#signModal').modal('show');
+      return;
+    }
+
+    // Themed confirmation (e.g. withdraw controlled copy)
+    var confirmBtn = e.target.closest('.js-confirm');
+    if (confirmBtn) {
+      pendingForm = confirmBtn.closest('form');
+      document.getElementById('confirmMessage').textContent = confirmBtn.getAttribute('data-message') || 'Are you sure?';
+      jQuery('#confirmModal').modal('show');
+      return;
+    }
+  });
+
+  document.getElementById('confirmOk').addEventListener('click', function () {
+    if (pendingForm) { pendingForm.submit(); }
+  });
+})();
+</script>
 
 @endsection
