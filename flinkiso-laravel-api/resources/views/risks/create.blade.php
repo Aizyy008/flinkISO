@@ -6,7 +6,7 @@
 @section('breadcrumb')<li><a href="/risks">Risks</a></li><li class="active">New</li>@endsection
 @section('content')
 <div class="row">
-  <div class="col-md-10">
+  <div class="col-md-12">
     <div class="box box-primary">
       <div class="box-header with-border"><h3 class="box-title">New risk</h3></div>
       <form method="post" action="/risks">

@@ -40,7 +40,10 @@
 
 <div class="row"><div class="col-md-12">
   <div class="box box-default">
-    <div class="box-header with-border"><h3 class="box-title">Annual audit programs</h3></div>
+    <div class="box-header with-border">
+      <h3 class="box-title">Annual audit programs</h3>
+      <div class="box-tools"><a class="btn btn-default btn-sm" href="/audits/create#program"><i class="fa fa-plus"></i> New program</a></div>
+    </div>
     <div class="box-body no-padding">
       <table class="table">
         <thead><tr><th>Reference</th><th>Year</th><th>Title</th><th>Audits</th><th>Status</th></tr></thead>

@@ -48,7 +48,7 @@
     </div>
   </div>
   <div class="col-md-4">
-    <div class="box box-default">
+    <div class="box box-default" id="program">
       <div class="box-header with-border"><h3 class="box-title">New annual program</h3></div>
       <form method="post" action="/audits/program">
         @csrf

@@ -6,7 +6,7 @@
 @section('breadcrumb')<li><a href="/capa">CAPA</a></li><li class="active">New</li>@endsection
 @section('content')
 <div class="row">
-  <div class="col-md-10">
+  <div class="col-md-12">
     <div class="box box-primary">
       <div class="box-header with-border"><h3 class="box-title">New CAPA</h3></div>
       <form method="post" action="/capa">
@@ -15,6 +15,14 @@
         <div class="box-body">
           @if($incident)
           <div class="callout callout-info" style="padding:8px 12px;">Linked to incident <b>{{ $incident->reference }}</b> &mdash; {{ $incident->title }}</div>
+          @else
+          <div class="form-group" style="max-width:600px;">
+            <label>Link to incident / non-conformity <small class="text-muted">(optional — connects this CAPA to its source)</small></label>
+            <select class="form-control" name="incident_id">
+              <option value="">(none — standalone CAPA)</option>
+              @foreach($incidents as $inc)<option value="{{ $inc->id }}" @selected(old('incident_id')===$inc->id)>{{ $inc->reference }} — {{ $inc->title }}</option>@endforeach
+            </select>
+          </div>
           @endif
           <div class="form-group"><label>Title *</label><input class="form-control" name="title" value="{{ old('title', $incident?->title ? 'CAPA for '.$incident->title : '') }}"></div>
           <div class="row">

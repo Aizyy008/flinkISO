@@ -12,6 +12,8 @@
   .content-wrapper { min-height: calc(100vh - 101px); }
   .main-header .logo,
   .main-header .navbar { height: 50px; }
+  /* Breathing room to the left of the FlinkISO QMS logo text. */
+  .main-header .logo { text-align: left; padding-left: 20px; }
   .main-header .navbar-custom-menu .nav > li > a { padding: 15px; line-height: 20px; }
   .qms-sign { font-size: 11px; }
 
@@ -31,6 +33,21 @@
 
   /* Fix: remove the forced scrollbars on .table-responsive */
   .content-wrapper .table-responsive { overflow-x: auto !important; overflow-y: visible !important; border: 0 !important; min-height: 0 !important; }
+
+  /* Fix: checkbox / radio overlapping their label text (theme drops the padding). */
+  .content-wrapper .checkbox, .content-wrapper .radio { position: relative; display: block; margin: 6px 0; }
+  .content-wrapper .checkbox label, .content-wrapper .radio label { padding-left: 22px; font-weight: normal; margin-bottom: 0; }
+  .content-wrapper .checkbox input[type="checkbox"],
+  .content-wrapper .radio input[type="radio"] { position: absolute; left: 0; top: 3px; margin: 0; vertical-align: middle; }
+  /* Inline checkbox (e.g. "also send email") stays on its row without overlap. */
+  .content-wrapper .checkbox-inline { position: relative; padding-left: 22px; }
+  .content-wrapper .checkbox-inline input[type="checkbox"] { position: absolute; left: 0; top: 3px; margin: 0; }
+
+  /* Tighten form spacing so rows don't spread out. */
+  .content-wrapper .box-body .form-group { margin-bottom: 12px; }
+  .content-wrapper .box-body label { margin-bottom: 3px; }
+  /* Disabled (processing) buttons keep a clear look. */
+  .content-wrapper .btn[disabled] { opacity: .65; cursor: progress; }
 
   /* Clean sidebar collapse: fully hide the sidebar (no leftover mini icon strip)
      and let the content take the full width. */
@@ -124,6 +141,37 @@
       }
     });
   })();
+
+  // Global: on any form submit, disable the clicked submit button and show a
+  // processing state so it can't be double-submitted. Purely visual — no logic
+  // change; the submission proceeds normally.
+  (function () {
+    document.addEventListener('submit', function (e) {
+      var form = e.target;
+      if (!form || form.tagName !== 'FORM') return;
+      if (form.getAttribute('data-no-busy') !== null) return;   // opt-out hook
+      // The exact button that triggered submit (falls back to first submit button).
+      var btn = e.submitter || form.querySelector('button[type="submit"], button:not([type]), input[type="submit"]');
+      if (!btn || btn.disabled) return;
+      // Disable after the current tick so the button's value still posts.
+      setTimeout(function () {
+        if (btn.tagName === 'BUTTON') {
+          btn.setAttribute('data-orig', btn.innerHTML);
+          btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processing…';
+        }
+        btn.disabled = true;
+      }, 0);
+      // Safety: if the page didn't navigate (validation/AJAX), re-enable after 12s.
+      setTimeout(function () {
+        if (!btn.disabled) return;
+        btn.disabled = false;
+        if (btn.tagName === 'BUTTON' && btn.getAttribute('data-orig') !== null) {
+          btn.innerHTML = btn.getAttribute('data-orig');
+        }
+      }, 12000);
+    }, true);
+  })();
 </script>
+@yield('scripts')
 </body>
 </html>
