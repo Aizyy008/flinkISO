@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Web\AuditController;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\CapaController;
 use App\Http\Controllers\Web\DocumentController;
@@ -33,6 +34,7 @@ Route::middleware('webauth')->group(function () {
     Route::post('/documents/{id}/change-request/{cr}/decide', [DocumentController::class, 'decideChangeRequest']);
     Route::post('/documents/{id}/change-request/{cr}/implement', [DocumentController::class, 'implementChangeRequest']);
     Route::post('/documents/{id}/copy', [DocumentController::class, 'issueCopy']);
+    Route::post('/documents/{id}/copy/{copyId}/withdraw', [DocumentController::class, 'withdrawCopy']);
 
     // Incidents / Non-conformities
     Route::get('/incidents', [IncidentController::class, 'index']);
@@ -50,6 +52,18 @@ Route::middleware('webauth')->group(function () {
     Route::post('/capa/{id}/update', [CapaController::class, 'update']);
     Route::post('/capa/{id}/status', [CapaController::class, 'updateStatus']);
     Route::post('/capa/{id}/verify', [CapaController::class, 'verify']);
+
+    // Audit Management (program, schedule, checklist, findings -> NC -> CAPA)
+    Route::get('/audits', [AuditController::class, 'index']);
+    Route::get('/audits/create', [AuditController::class, 'create']);
+    Route::post('/audits', [AuditController::class, 'store']);
+    Route::post('/audits/program', [AuditController::class, 'storeProgram']);
+    Route::get('/audits/{id}', [AuditController::class, 'show']);
+    Route::get('/audits/{id}/report', [AuditController::class, 'report']);
+    Route::post('/audits/{id}/status', [AuditController::class, 'updateStatus']);
+    Route::post('/audits/{id}/checklist', [AuditController::class, 'addChecklistItem']);
+    Route::post('/audits/{id}/checklist/{itemId}/response', [AuditController::class, 'recordResponse']);
+    Route::post('/audits/{id}/finding', [AuditController::class, 'addFinding']);
 
     // Risk register
     Route::get('/risks', [RiskController::class, 'index']);
