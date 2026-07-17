@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Qms\Audit;
+use App\Models\Qms\AuditProgram;
 use App\Models\Qms\Capa;
 use App\Models\Qms\Evidence;
 use App\Models\Qms\Incident;
@@ -86,6 +88,29 @@ class QmsCoreDemoSeeder extends Seeder
                 $risk->save();
             }
             $this->command->info('Seeded 2 risks with calculated scores.');
+        }
+
+        // 4) An audit program + a scheduled internal audit with a checklist and a finding.
+        if (!AuditProgram::where('reference', 'like', 'AP ' . $year . ' %')->exists()) {
+            $prog = AuditProgram::create([
+                'reference' => "AP $year 01", 'year' => (int) $year, 'title' => "Annual audit program $year",
+                'objectives' => 'Cover all ISO 9001 clauses across production and warehouse.', 'status' => 'active', 'created_by' => $u->id,
+            ]);
+            $aud = Audit::create([
+                'reference' => "AUD $year 0001", 'program_id' => $prog->id, 'title' => 'DEMO Internal audit — Production (ISO 9001)',
+                'audit_type' => 'internal', 'standard' => 'ISO 9001:2015', 'scope' => 'Production line 1 processes and records.',
+                'lead_auditor_id' => $u->id, 'auditor_id' => $u->id, 'planned_date' => now()->addDays(14)->toDateString(),
+                'status' => 'in_progress', 'related_process' => 'Production', 'related_clause' => '8.5', 'created_by' => $u->id,
+            ]);
+            $audit->record('qms_audit', $aud->id, 'create', ['user_id' => $u->id, 'username' => $u->username, 'changes' => ['new' => ['reference' => $aud->reference]]]);
+            foreach ([
+                ['Leadership', '5.1', 'Is the quality policy communicated and understood?', 'conform'],
+                ['Operation', '8.5', 'Are production process controls documented and followed?', 'nonconform'],
+                ['Operation', '8.5.1', 'Is monitoring equipment calibrated and identified?', 'observation'],
+            ] as $i => [$section, $clause, $q, $resp]) {
+                $aud->checklistItems()->create(['section' => $section, 'clause_ref' => $clause, 'question' => $q, 'response' => $resp, 'sort_order' => $i + 1, 'created_by' => $u->id]);
+            }
+            $this->command->info('Seeded audit program AP ' . $year . ' 01 + audit AUD ' . $year . ' 0001 with checklist.');
         }
     }
 }

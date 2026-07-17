@@ -74,6 +74,7 @@
         <li class="@yield('menu_documents')"><a href="/documents"><i class="fa fa-file-text-o"></i> <span>Document Control</span></a></li>
         <li class="@yield('menu_incidents')"><a href="/incidents"><i class="fa fa-exclamation-triangle"></i> <span>Incidents</span></a></li>
         <li class="@yield('menu_capa')"><a href="/capa"><i class="fa fa-wrench"></i> <span>CAPA</span></a></li>
+        <li class="@yield('menu_audits')"><a href="/audits"><i class="fa fa-clipboard"></i> <span>Audit Management</span></a></li>
         <li class="@yield('menu_risks')"><a href="/risks"><i class="fa fa-shield"></i> <span>Risk Register</span></a></li>
         <li class="header">AUTOMATION</li>
         <li class="@yield('menu_workflows')"><a href="/workflows"><i class="fa fa-cogs"></i> <span>Workflow rules</span></a></li>
