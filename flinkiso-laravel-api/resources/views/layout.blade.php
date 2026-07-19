@@ -34,14 +34,20 @@
   /* Fix: remove the forced scrollbars on .table-responsive */
   .content-wrapper .table-responsive { overflow-x: auto !important; overflow-y: visible !important; border: 0 !important; min-height: 0 !important; }
 
-  /* Fix: checkbox / radio overlapping their label text (theme drops the padding). */
-  .content-wrapper .checkbox, .content-wrapper .radio { position: relative; display: block; margin: 6px 0; }
-  .content-wrapper .checkbox label, .content-wrapper .radio label { padding-left: 22px; font-weight: normal; margin-bottom: 0; }
-  .content-wrapper .checkbox input[type="checkbox"],
-  .content-wrapper .radio input[type="radio"] { position: absolute; left: 0; top: 3px; margin: 0; vertical-align: middle; }
-  /* Inline checkbox (e.g. "also send email") stays on its row without overlap. */
-  .content-wrapper .checkbox-inline { position: relative; padding-left: 22px; }
-  .content-wrapper .checkbox-inline input[type="checkbox"] { position: absolute; left: 0; top: 3px; margin: 0; }
+  /* Fix: checkbox / radio alignment with their label text.
+     Flexbox on the label vertically centres the box and the text reliably. */
+  .content-wrapper .checkbox, .content-wrapper .radio { margin: 6px 0; }
+  .content-wrapper .checkbox label, .content-wrapper .radio label,
+  .content-wrapper .checkbox-inline, .content-wrapper .radio-inline {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding-left: 0; font-weight: normal; margin-bottom: 0;
+  }
+  .content-wrapper .checkbox label input[type="checkbox"],
+  .content-wrapper .radio label input[type="radio"],
+  .content-wrapper .checkbox-inline input[type="checkbox"],
+  .content-wrapper .radio-inline input[type="radio"] {
+    position: static; margin: 0; top: auto; flex: 0 0 auto;
+  }
 
   /* Tighten form spacing so rows don't spread out. */
   .content-wrapper .box-body .form-group { margin-bottom: 12px; }
@@ -170,6 +176,18 @@
         }
       }, 12000);
     }, true);
+  })();
+
+  // Global: colour the required-field asterisk (*) red in every form label.
+  (function () {
+    var labels = document.querySelectorAll('.content-wrapper label');
+    for (var i = 0; i < labels.length; i++) {
+      var lbl = labels[i];
+      // Only plain-text labels (skip checkbox/radio labels that wrap inputs).
+      if (lbl.children.length === 0 && lbl.innerHTML.indexOf('*') !== -1) {
+        lbl.innerHTML = lbl.innerHTML.replace(/\*/g, '<span class="text-danger">*</span>');
+      }
+    }
   })();
 </script>
 @yield('scripts')
