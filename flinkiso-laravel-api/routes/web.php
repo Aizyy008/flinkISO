@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\CapaController;
 use App\Http\Controllers\Web\DocumentController;
 use App\Http\Controllers\Web\EvidenceController;
 use App\Http\Controllers\Web\FormBridgeController;
+use App\Http\Controllers\Web\FormBuilderController;
 use App\Http\Controllers\Web\HaccpController;
 use App\Http\Controllers\Web\IncidentController;
 use App\Http\Controllers\Web\NotificationController;
@@ -109,6 +110,17 @@ Route::middleware('webauth')->group(function () {
     // Form Builder bridge (read legacy custom forms)
     Route::get('/forms', [FormBridgeController::class, 'index']);
     Route::get('/forms/{id}', [FormBridgeController::class, 'show']);
+
+    // Drag & Drop Form Builder (build forms, fill, submissions -> record + workflow)
+    Route::get('/form-builder', [FormBuilderController::class, 'index']);
+    Route::get('/form-builder/create', [FormBuilderController::class, 'create']);
+    Route::post('/form-builder', [FormBuilderController::class, 'store']);
+    Route::get('/form-builder/{id}/edit', [FormBuilderController::class, 'edit']);
+    Route::put('/form-builder/{id}', [FormBuilderController::class, 'update']);
+    Route::delete('/form-builder/{id}', [FormBuilderController::class, 'destroy']);
+    Route::get('/form-builder/{id}/fill', [FormBuilderController::class, 'fill']);
+    Route::post('/form-builder/{id}/submit', [FormBuilderController::class, 'submit']);
+    Route::get('/form-builder/{id}/submissions', [FormBuilderController::class, 'submissions']);
 
     // Workflow rules
     Route::get('/workflows', [WorkflowController::class, 'index']);

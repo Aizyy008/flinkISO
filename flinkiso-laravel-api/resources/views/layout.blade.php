@@ -103,6 +103,7 @@
         <li class="@yield('menu_training')"><a href="/training"><i class="fa fa-graduation-cap"></i> <span>Training</span></a></li>
         <li class="@yield('menu_calibration')"><a href="/assets"><i class="fa fa-wrench"></i> <span>Assets &amp; Calibration</span></a></li>
         <li class="@yield('menu_forms')"><a href="/forms"><i class="fa fa-list-alt"></i> <span>Forms</span></a></li>
+        <li class="@yield('menu_formbuilder')"><a href="/form-builder"><i class="fa fa-object-group"></i> <span>Form Builder</span></a></li>
         <li class="header">AUTOMATION</li>
         <li class="@yield('menu_workflows')"><a href="/workflows"><i class="fa fa-cogs"></i> <span>Workflow rules</span></a></li>
         <li class="@yield('menu_notifications')"><a href="/notifications"><i class="fa fa-bell-o"></i> <span>Notifications</span> <span class="pull-right-container"><small class="label pull-right bg-yellow notif-badge" @if(!$qmsUnread)style="display:none;"@endif>{{ $qmsUnread }}</small></span></a></li>
