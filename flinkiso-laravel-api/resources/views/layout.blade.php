@@ -177,6 +177,18 @@
       }, 12000);
     }, true);
   })();
+
+  // Global: colour the required-field asterisk (*) red in every form label.
+  (function () {
+    var labels = document.querySelectorAll('.content-wrapper label');
+    for (var i = 0; i < labels.length; i++) {
+      var lbl = labels[i];
+      // Only plain-text labels (skip checkbox/radio labels that wrap inputs).
+      if (lbl.children.length === 0 && lbl.innerHTML.indexOf('*') !== -1) {
+        lbl.innerHTML = lbl.innerHTML.replace(/\*/g, '<span class="text-danger">*</span>');
+      }
+    }
+  })();
 </script>
 @yield('scripts')
 </body>
