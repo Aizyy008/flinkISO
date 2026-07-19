@@ -12,6 +12,8 @@
   .content-wrapper { min-height: calc(100vh - 101px); }
   .main-header .logo,
   .main-header .navbar { height: 50px; }
+  /* Breathing room to the left of the FlinkISO QMS logo text. */
+  .main-header .logo { text-align: left; padding-left: 20px; }
   .main-header .navbar-custom-menu .nav > li > a { padding: 15px; line-height: 20px; }
   .qms-sign { font-size: 11px; }
 
@@ -31,6 +33,27 @@
 
   /* Fix: remove the forced scrollbars on .table-responsive */
   .content-wrapper .table-responsive { overflow-x: auto !important; overflow-y: visible !important; border: 0 !important; min-height: 0 !important; }
+
+  /* Fix: checkbox / radio alignment with their label text.
+     Flexbox on the label vertically centres the box and the text reliably. */
+  .content-wrapper .checkbox, .content-wrapper .radio { margin: 6px 0; }
+  .content-wrapper .checkbox label, .content-wrapper .radio label,
+  .content-wrapper .checkbox-inline, .content-wrapper .radio-inline {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding-left: 0; font-weight: normal; margin-bottom: 0;
+  }
+  .content-wrapper .checkbox label input[type="checkbox"],
+  .content-wrapper .radio label input[type="radio"],
+  .content-wrapper .checkbox-inline input[type="checkbox"],
+  .content-wrapper .radio-inline input[type="radio"] {
+    position: static; margin: 0; top: auto; flex: 0 0 auto;
+  }
+
+  /* Tighten form spacing so rows don't spread out. */
+  .content-wrapper .box-body .form-group { margin-bottom: 12px; }
+  .content-wrapper .box-body label { margin-bottom: 3px; }
+  /* Disabled (processing) buttons keep a clear look. */
+  .content-wrapper .btn[disabled] { opacity: .65; cursor: progress; }
 
   /* Clean sidebar collapse: fully hide the sidebar (no leftover mini icon strip)
      and let the content take the full width. */
@@ -74,6 +97,7 @@
         <li class="@yield('menu_documents')"><a href="/documents"><i class="fa fa-file-text-o"></i> <span>Document Control</span></a></li>
         <li class="@yield('menu_incidents')"><a href="/incidents"><i class="fa fa-exclamation-triangle"></i> <span>Incidents</span></a></li>
         <li class="@yield('menu_capa')"><a href="/capa"><i class="fa fa-wrench"></i> <span>CAPA</span></a></li>
+        <li class="@yield('menu_audits')"><a href="/audits"><i class="fa fa-clipboard"></i> <span>Audit Management</span></a></li>
         <li class="@yield('menu_risks')"><a href="/risks"><i class="fa fa-shield"></i> <span>Risk Register</span></a></li>
         <li class="@yield('menu_haccp')"><a href="/haccp"><i class="fa fa-flask"></i> <span>HACCP</span></a></li>
         <li class="@yield('menu_training')"><a href="/training"><i class="fa fa-graduation-cap"></i> <span>Training</span></a></li>
@@ -126,6 +150,48 @@
         b.classList.toggle('sidebar-collapse');
       }
     });
+  })();
+
+  // Global: on any form submit, disable the clicked submit button and show a
+  // processing state so it can't be double-submitted. Purely visual — no logic
+  // change; the submission proceeds normally.
+  (function () {
+    document.addEventListener('submit', function (e) {
+      var form = e.target;
+      if (!form || form.tagName !== 'FORM') return;
+      if (form.getAttribute('data-no-busy') !== null) return;   // opt-out hook
+      // The exact button that triggered submit (falls back to first submit button).
+      var btn = e.submitter || form.querySelector('button[type="submit"], button:not([type]), input[type="submit"]');
+      if (!btn || btn.disabled) return;
+      // Disable after the current tick so the button's value still posts.
+      setTimeout(function () {
+        if (btn.tagName === 'BUTTON') {
+          btn.setAttribute('data-orig', btn.innerHTML);
+          btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Processing…';
+        }
+        btn.disabled = true;
+      }, 0);
+      // Safety: if the page didn't navigate (validation/AJAX), re-enable after 12s.
+      setTimeout(function () {
+        if (!btn.disabled) return;
+        btn.disabled = false;
+        if (btn.tagName === 'BUTTON' && btn.getAttribute('data-orig') !== null) {
+          btn.innerHTML = btn.getAttribute('data-orig');
+        }
+      }, 12000);
+    }, true);
+  })();
+
+  // Global: colour the required-field asterisk (*) red in every form label.
+  (function () {
+    var labels = document.querySelectorAll('.content-wrapper label');
+    for (var i = 0; i < labels.length; i++) {
+      var lbl = labels[i];
+      // Only plain-text labels (skip checkbox/radio labels that wrap inputs).
+      if (lbl.children.length === 0 && lbl.innerHTML.indexOf('*') !== -1) {
+        lbl.innerHTML = lbl.innerHTML.replace(/\*/g, '<span class="text-danger">*</span>');
+      }
+    }
   })();
 </script>
 @yield('scripts')

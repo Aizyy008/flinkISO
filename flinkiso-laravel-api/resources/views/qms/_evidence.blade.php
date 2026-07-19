@@ -7,16 +7,18 @@
       <input type="hidden" name="related_type" value="{{ $relatedType }}">
       <input type="hidden" name="related_id" value="{{ $relatedId }}">
       <input type="hidden" name="redirect" value="{{ $redirect }}">
-      <div class="col-sm-3 form-group">
+      <div class="col-sm-2 form-group">
+        <label class="small">Type</label>
         <select class="form-control" name="evidence_type">
           <option value="file">File</option><option value="photo">Photo</option>
           <option value="measurement">Measurement</option><option value="record">Record</option>
           <option value="report">Report</option>
         </select>
       </div>
-      <div class="col-sm-3 form-group"><input type="file" name="file" class="form-control"></div>
-      <div class="col-sm-4 form-group"><input class="form-control" name="note" placeholder="or a note / measurement"></div>
-      <div class="col-sm-2 form-group"><button class="btn btn-default btn-block"><i class="fa fa-upload"></i> Attach</button></div>
+      <div class="col-sm-3 form-group"><label class="small">Title</label><input class="form-control" name="title" placeholder="e.g. Temperature log"></div>
+      <div class="col-sm-3 form-group"><label class="small">File</label><input type="file" name="file" class="form-control"></div>
+      <div class="col-sm-2 form-group"><label class="small">…or a note</label><input class="form-control" name="note" placeholder="note / measurement"></div>
+      <div class="col-sm-2 form-group"><label class="small">&nbsp;</label><button class="btn btn-default btn-block"><i class="fa fa-upload"></i> Attach</button></div>
     </form>
 
     @if($evidence->count())

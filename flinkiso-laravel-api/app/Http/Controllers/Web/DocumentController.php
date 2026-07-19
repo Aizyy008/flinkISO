@@ -8,7 +8,9 @@ use App\Models\Qms\ControlledCopy;
 use App\Models\Qms\Document;
 use App\Models\Qms\DocumentVersion;
 use App\Models\Qms\AuditTrail;
+use App\Models\Qms\ElectronicSignature;
 use App\Services\Qms\AuditTrailService;
+use App\Services\Qms\SignatureService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +21,17 @@ use Illuminate\Support\Facades\DB;
  */
 class DocumentController extends Controller
 {
-    public function __construct(private AuditTrailService $audit) {}
+    public function __construct(private AuditTrailService $audit, private SignatureService $signatures) {}
+
+    /**
+     * Transitions that require an electronic signature (per the client's
+     * requirement: signatures are connected to the approval and release actions).
+     * Submit-for-review and obsolete are ordinary transitions, still audited.
+     */
+    private const SIGNING_MEANINGS = [
+        'approved' => 'approved',
+        'released' => 'authorized',
+    ];
 
     private function user(Request $r): array
     {
@@ -94,7 +106,8 @@ class DocumentController extends Controller
         $document = Document::with(['versions' => fn ($q) => $q->orderByDesc('version'), 'changeRequests', 'controlledCopies'])
             ->findOrFail($id);
         $audit = AuditTrail::where('entity_type', 'qms_document')->where('entity_id', $id)->orderByDesc('seq')->get();
-        return view('documents.show', ['document' => $document, 'audit' => $audit] + $this->refData());
+        $signatures = ElectronicSignature::where('entity_id', $id)->orderByDesc('signed_at')->get();
+        return view('documents.show', ['document' => $document, 'audit' => $audit, 'signatures' => $signatures] + $this->refData());
     }
 
     public function transition(Request $request, string $id)
@@ -102,11 +115,23 @@ class DocumentController extends Controller
         $data = $request->validate([
             'to' => 'required|in:review,approved,released,obsolete,draft',
             'reason' => 'nullable|string|max:255',
+            'password' => 'nullable|string',
         ]);
         $doc = Document::findOrFail($id);
         if (!$doc->canTransitionTo($data['to'])) {
             return back()->withErrors(['to' => "Illegal transition from {$doc->status} to {$data['to']}"]);
         }
+
+        $u = $this->user($request);
+        $meaning = self::SIGNING_MEANINGS[$data['to']] ?? null;
+
+        // A signing transition requires authentication at the moment of signing (Part 11).
+        if ($meaning) {
+            if (!$this->signatures->verify($u['id'], $data['password'] ?? null)) {
+                return back()->withErrors(['password' => 'Electronic signature failed: your password is required and must be correct to sign this action.'])->withInput();
+            }
+        }
+
         $from = $doc->status;
         $doc->status = $data['to'];
 
@@ -116,18 +141,18 @@ class DocumentController extends Controller
             if (!$doc->review_due_date) {
                 $doc->review_due_date = now()->addYear()->toDateString();
             }
+            DocumentVersion::where('document_id', $doc->id)->where('version', $doc->current_version)->update(['status' => 'released']);
         }
         $doc->save();
 
-        $meaning = match ($data['to']) {
-            'review' => 'reviewed', 'approved' => 'approved', 'released' => 'authorized', default => null,
-        };
-        if ($data['to'] === 'released') {
-            DocumentVersion::where('document_id', $doc->id)->where('version', $doc->current_version)->update(['status' => 'released']);
-        }
-        $this->log($doc, 'status_change', $this->user($request), ['status' => ['old' => $from, 'new' => $doc->status]], $data['reason'] ?? null, $meaning);
+        $auditRow = $this->log($doc, 'status_change', $u, ['status' => ['old' => $from, 'new' => $doc->status]], $data['reason'] ?? null, $meaning);
 
-        return back()->with('ok', "Document moved to {$doc->status}." . ($meaning ? " Signed as {$meaning}." : ''));
+        // Record the electronic signature bound to this exact action.
+        if ($meaning) {
+            $this->signatures->sign($doc->id, $doc->current_version, $data['to'], $meaning, $data['reason'] ?? null, $u, $auditRow?->seq, $request->ip());
+        }
+
+        return back()->with('ok', "Document moved to {$doc->status}." . ($meaning ? " Electronically signed as '{$meaning}' by {$u['username']}." : ''));
     }
 
     public function newVersion(Request $request, string $id)
@@ -175,15 +200,32 @@ class DocumentController extends Controller
     /** Approve or reject a change request (CR form + approval, per the brief). */
     public function decideChangeRequest(Request $request, string $id, string $cr)
     {
-        $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => 'nullable|string|max:255']);
+        $data = $request->validate([
+            'decision' => 'required|in:approved,rejected',
+            'reason' => 'nullable|string|max:255',
+            'password' => 'nullable|string',
+        ]);
         $doc = Document::findOrFail($id);
         $changeRequest = ChangeRequest::where('document_id', $id)->where('id', $cr)->firstOrFail();
         if ($changeRequest->status !== 'open') {
             return back()->withErrors(['decision' => 'This change request has already been decided.']);
         }
-        $changeRequest->update(['status' => $data['decision'], 'decided_by' => $this->user($request)['id']]);
-        $this->log($doc, 'change_request_' . $data['decision'], $this->user($request),
-            ['change_request' => $changeRequest->reference], $data['reason'] ?? null, 'approved');
+        $u = $this->user($request);
+
+        // Approving a change request is a signing act — authenticate the signer.
+        if ($data['decision'] === 'approved' && !$this->signatures->verify($u['id'], $data['password'] ?? null)) {
+            return back()->withErrors(['password' => 'Your password is required to sign the approval of this change request.'])->withInput();
+        }
+
+        $changeRequest->update(['status' => $data['decision'], 'decided_by' => $u['id']]);
+        $meaning = $data['decision'] === 'approved' ? 'approved' : null;
+        $auditRow = $this->log($doc, 'change_request_' . $data['decision'], $u,
+            ['change_request' => $changeRequest->reference], $data['reason'] ?? null, $meaning);
+
+        if ($data['decision'] === 'approved') {
+            $this->signatures->sign($doc->id, $doc->current_version, 'change_request_approved', 'approved',
+                'CR ' . $changeRequest->reference . ($data['reason'] ? ': ' . $data['reason'] : ''), $u, $auditRow?->seq, $request->ip());
+        }
 
         return back()->with('ok', "Change request {$changeRequest->reference} {$data['decision']}.");
     }
@@ -225,13 +267,27 @@ class DocumentController extends Controller
 
     public function pdf(string $id)
     {
-        $document = Document::with(['versions' => fn ($q) => $q->orderByDesc('version')])->findOrFail($id);
+        $document = Document::with(['versions' => fn ($q) => $q->orderByDesc('version'), 'controlledCopies'])->findOrFail($id);
         $standard = $document->related_standard_id
             ? DB::connection('flinkiso')->table('standards')->where('id', $document->related_standard_id)->value('name') : null;
-        $approval = AuditTrail::where('entity_type', 'qms_document')->where('entity_id', $id)
-            ->whereIn('signature_meaning', ['reviewed', 'approved', 'authorized'])->orderBy('seq')->get();
-        $pdf = Pdf::loadView('documents.pdf', compact('document', 'approval', 'standard'));
-        return $pdf->download($document->doc_number . '-v' . $document->current_version . '.pdf');
+        // Approval/release metadata from the dedicated electronic-signature records.
+        $signatures = ElectronicSignature::where('entity_id', $id)->orderBy('signed_at')->get();
+        $pdf = Pdf::loadView('documents.pdf', compact('document', 'signatures', 'standard'));
+        return $pdf->download($document->doc_number . '-v' . $document->current_version . '-rev' . ($document->revision_number ?? 0) . '.pdf');
+    }
+
+    /** Withdraw (return) a controlled copy — keeps the register accurate. */
+    public function withdrawCopy(Request $request, string $id, string $copyId)
+    {
+        $doc = Document::findOrFail($id);
+        $copy = ControlledCopy::where('document_id', $id)->where('id', $copyId)->firstOrFail();
+        if ($copy->returned_at) {
+            return back()->withErrors(['copy' => 'This controlled copy is already withdrawn.']);
+        }
+        $copy->update(['returned_at' => now()]);
+        $this->log($doc, 'withdraw_copy', $this->user($request), ['controlled_copy' => $copy->holder]);
+
+        return back()->with('ok', "Controlled copy to {$copy->holder} withdrawn.");
     }
 
     /** Supersede the current version, create a new draft version, bump revision number. */
@@ -250,9 +306,9 @@ class DocumentController extends Controller
         ]);
     }
 
-    private function log(Document $doc, string $action, array $user, array $changes, ?string $reason = null, ?string $meaning = null): void
+    private function log(Document $doc, string $action, array $user, array $changes, ?string $reason = null, ?string $meaning = null)
     {
-        $this->audit->record('qms_document', $doc->id, $action, [
+        return $this->audit->record('qms_document', $doc->id, $action, [
             'user_id' => $user['id'], 'username' => $user['username'],
             'changes' => $changes, 'reason' => $reason, 'signature_meaning' => $meaning,
         ]);

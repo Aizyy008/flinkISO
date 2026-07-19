@@ -110,6 +110,29 @@ class WorkflowEngine
                 }
                 return ['type' => 'create_capa', 'ok' => true, 'capa_id' => $capa->id];
 
+            case 'assign_task':
+                // Assign the entity to a user and notify them of the task.
+                $assignee = $p['user_id'] ?? ($ctx['owner_id'] ?? $ctx['created_by'] ?? null);
+                if ($assignee) {
+                    $this->notifier->notify($assignee, 'assignment',
+                        $p['title'] ?? 'Task assigned by workflow',
+                        $p['body'] ?? null, $ctx['entity_type'] ?? null, $ctx['entity_id'] ?? null,
+                        (bool) ($p['email'] ?? false));
+                }
+                return ['type' => 'assign_task', 'ok' => (bool) $assignee, 'assignee' => $assignee];
+
+            case 'request_approval':
+                // Generate an approval request notification to the approver/owner.
+                $approver = $p['approver_id'] ?? ($ctx['owner_id'] ?? null);
+                if ($approver) {
+                    $this->notifier->notify($approver, 'approval',
+                        $p['title'] ?? 'Approval requested',
+                        $p['body'] ?? 'An item requires your approval.',
+                        $ctx['entity_type'] ?? null, $ctx['entity_id'] ?? null,
+                        (bool) ($p['email'] ?? false));
+                }
+                return ['type' => 'request_approval', 'ok' => (bool) $approver, 'approver' => $approver];
+
             default:
                 return ['type' => $type, 'ok' => false, 'error' => 'unknown action'];
         }

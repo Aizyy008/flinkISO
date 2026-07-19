@@ -34,7 +34,9 @@ class CapaController extends Controller
     public function create(Request $request)
     {
         $incident = $request->filled('incident_id') ? Incident::find($request->string('incident_id')) : null;
-        return view('capa.create', ['users' => $this->users(), 'incident' => $incident]);
+        $incidents = Incident::whereIn('status', ['open', 'investigating', 'capa_raised'])
+            ->latest()->get(['id', 'reference', 'title']);
+        return view('capa.create', ['users' => $this->users(), 'incident' => $incident, 'incidents' => $incidents]);
     }
 
     public function store(Request $request)

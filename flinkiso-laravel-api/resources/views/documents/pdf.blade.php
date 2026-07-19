@@ -26,30 +26,41 @@
     <tr><td class="k">Document number</td><td>{{ $document->doc_number }}</td></tr>
     <tr><td class="k">Title</td><td>{{ $document->title }}</td></tr>
     <tr><td class="k">Category / Type</td><td>{{ $document->category }}@if($document->document_type) / {{ $document->document_type }}@endif</td></tr>
-    <tr><td class="k">Version</td><td>v{{ $document->current_version }} ({{ $document->iso_ref }})</td></tr>
-    <tr><td class="k">Status</td><td>{{ ucfirst($document->status) }}</td></tr>
+    <tr><td class="k">Version / Revision / Issue</td><td>v{{ $document->current_version }} &middot; Rev {{ $document->revision_number ?? 0 }} &middot; Issue {{ $document->issue_number ?? 1 }}</td></tr>
+    <tr><td class="k">Status</td><td><strong>{{ strtoupper($document->status) }}</strong></td></tr>
     <tr><td class="k">Effective date</td><td>{{ $document->effective_date?->toDateString() ?? 'N/A' }}</td></tr>
     <tr><td class="k">Review due date</td><td>{{ $document->review_due_date?->toDateString() ?? 'N/A' }}</td></tr>
     <tr><td class="k">Related standard / clause</td><td>{{ $standard ?? 'N/A' }}@if($document->related_clause_id) / {{ $document->related_clause_id }}@endif</td></tr>
     <tr><td class="k">Generated</td><td>{{ now()->toDayDateTimeString() }}</td></tr>
   </table>
 
-  <h2>Approval / signature record</h2>
-  @if($approval->count())
+  <h2>Electronic signature record (21 CFR Part 11)</h2>
+  @if($signatures->count())
   <table class="v">
-    <tr><th>Action</th><th>Signature meaning</th><th>Signed by</th><th>Reason</th><th>Timestamp</th></tr>
-    @foreach($approval as $a)
+    <tr><th>Action</th><th>Meaning</th><th>Signed by</th><th>Reason</th><th>Timestamp (UTC)</th><th>Record reference</th></tr>
+    @foreach($signatures as $s)
     <tr>
-      <td>{{ $a->action }}</td>
-      <td>{{ ucfirst($a->signature_meaning) }}</td>
-      <td>{{ $a->username }}</td>
-      <td>{{ $a->reason }}</td>
-      <td>{{ $a->created_at }}</td>
+      <td>{{ ucfirst(str_replace('_', ' ', $s->action)) }}</td>
+      <td>{{ ucfirst($s->meaning) }}</td>
+      <td>{{ $s->signer_name }} ({{ $s->signer_username }})</td>
+      <td>{{ $s->reason }}</td>
+      <td>{{ $s->signed_at }}</td>
+      <td style="font-size:9px;">{{ $s->record_reference }}</td>
     </tr>
     @endforeach
   </table>
   @else
-  <p>No approval or release signature recorded yet.</p>
+  <p>No electronic signature recorded yet.</p>
+  @endif
+
+  @if($document->controlledCopies->where('returned_at', null)->count())
+  <h2 style="margin-top:16px;">Controlled copy register (active)</h2>
+  <table class="v">
+    <tr><th>Copy holder</th><th>Location</th><th>Version</th><th>Issued</th></tr>
+    @foreach($document->controlledCopies->whereNull('returned_at') as $c)
+    <tr><td>{{ $c->holder }}</td><td>{{ $c->location ?? '—' }}</td><td>v{{ $c->version }}</td><td>{{ $c->issued_at ?? $c->created_at }}</td></tr>
+    @endforeach
+  </table>
   @endif
 
   <h2 style="margin-top:16px;">Version history</h2>
