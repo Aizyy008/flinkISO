@@ -92,9 +92,10 @@ class WorkflowEngine
                 return ['type' => 'notify', 'ok' => true];
 
             case 'create_capa':
+                $incidentId = ($ctx['entity_type'] ?? null) === 'qms_incident' ? ($ctx['entity_id'] ?? null) : null;
                 $capa = Capa::create([
-                    'reference' => 'CAPA-' . date('Y') . '-' . strtoupper(Str::random(6)),
-                    'incident_id' => $ctx['entity_id'] ?? null,
+                    'reference' => 'CAPA ' . date('Y') . ' ' . strtoupper(Str::random(6)),
+                    'incident_id' => $incidentId,
                     'type' => $p['type'] ?? 'corrective',
                     'title' => $p['title'] ?? ('Auto CAPA from ' . ($ctx['entity_type'] ?? 'event')),
                     'status' => 'open',
@@ -103,7 +104,34 @@ class WorkflowEngine
                 $this->audit->record('qms_capa', $capa->id, 'create', [
                     'reason' => 'auto-created by workflow',
                 ]);
+                // Move the originating incident to capa_raised.
+                if ($incidentId && ($inc = \App\Models\Qms\Incident::find($incidentId)) && $inc->status === 'open') {
+                    $inc->update(['status' => 'capa_raised']);
+                }
                 return ['type' => 'create_capa', 'ok' => true, 'capa_id' => $capa->id];
+
+            case 'assign_task':
+                // Assign the entity to a user and notify them of the task.
+                $assignee = $p['user_id'] ?? ($ctx['owner_id'] ?? $ctx['created_by'] ?? null);
+                if ($assignee) {
+                    $this->notifier->notify($assignee, 'assignment',
+                        $p['title'] ?? 'Task assigned by workflow',
+                        $p['body'] ?? null, $ctx['entity_type'] ?? null, $ctx['entity_id'] ?? null,
+                        (bool) ($p['email'] ?? false));
+                }
+                return ['type' => 'assign_task', 'ok' => (bool) $assignee, 'assignee' => $assignee];
+
+            case 'request_approval':
+                // Generate an approval request notification to the approver/owner.
+                $approver = $p['approver_id'] ?? ($ctx['owner_id'] ?? null);
+                if ($approver) {
+                    $this->notifier->notify($approver, 'approval',
+                        $p['title'] ?? 'Approval requested',
+                        $p['body'] ?? 'An item requires your approval.',
+                        $ctx['entity_type'] ?? null, $ctx['entity_id'] ?? null,
+                        (bool) ($p['email'] ?? false));
+                }
+                return ['type' => 'request_approval', 'ok' => (bool) $approver, 'approver' => $approver];
 
             default:
                 return ['type' => $type, 'ok' => false, 'error' => 'unknown action'];

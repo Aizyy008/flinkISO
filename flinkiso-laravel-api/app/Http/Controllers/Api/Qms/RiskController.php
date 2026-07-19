@@ -102,7 +102,7 @@ class RiskController extends Controller
     private function nextReference(): string
     {
         $year = date('Y');
-        $count = Risk::where('reference', 'like', "RISK-$year-%")->count() + 1;
-        return sprintf('RISK-%s-%04d', $year, $count);
+        $count = Risk::where('reference', 'like', "RISK $year %")->count() + 1;
+        return sprintf('RISK %s %04d', $year, $count);
     }
 }
