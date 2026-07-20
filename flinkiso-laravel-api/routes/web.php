@@ -9,6 +9,7 @@ use App\Http\Controllers\Web\EvidenceController;
 use App\Http\Controllers\Web\FormBridgeController;
 use App\Http\Controllers\Web\FormBuilderController;
 use App\Http\Controllers\Web\HaccpController;
+use App\Http\Controllers\Web\KpiController;
 use App\Http\Controllers\Web\IncidentController;
 use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\RiskController;
@@ -121,6 +122,16 @@ Route::middleware('webauth')->group(function () {
     Route::get('/form-builder/{id}/fill', [FormBuilderController::class, 'fill']);
     Route::post('/form-builder/{id}/submit', [FormBuilderController::class, 'submit']);
     Route::get('/form-builder/{id}/submissions', [FormBuilderController::class, 'submissions']);
+
+    // KPI Engine (definitions, results, calculated dashboard, report)
+    Route::get('/kpi', [KpiController::class, 'index']);
+    Route::get('/kpi/dashboard', [KpiController::class, 'dashboard']);
+    Route::get('/kpi/report', [KpiController::class, 'report']);
+    Route::get('/kpi/create', [KpiController::class, 'create']);
+    Route::post('/kpi', [KpiController::class, 'store']);
+    Route::get('/kpi/{id}', [KpiController::class, 'show']);
+    Route::put('/kpi/{id}', [KpiController::class, 'update']);
+    Route::post('/kpi/{id}/result', [KpiController::class, 'storeResult']);
 
     // Workflow rules
     Route::get('/workflows', [WorkflowController::class, 'index']);
