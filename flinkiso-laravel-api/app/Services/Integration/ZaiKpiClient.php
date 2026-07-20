@@ -8,6 +8,7 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Ramsey\Uuid\Uuid;
 
 /**
  * FlinkISO Expansion → ZaiKPI REST API client (Developer Instructions §2.2,
@@ -71,12 +72,31 @@ class ZaiKpiClient
             'calculation_formula' => $kpi->calculation_method,
             'aggregation_method' => $kpi->aggregation,
             'reporting_period' => $kpi->aggregation,
+            'measurement_frequency' => $kpi->frequency,
+            'data_source' => $kpi->data_source,
             'direction_of_improvement' => in_array($kpi->direction, ['higher_better', 'lower_better'], true) ? $kpi->direction : null,
             'status' => $kpi->status === 'inactive' ? 'inactive' : 'active',
         ];
         // Only send owner as an external UUID when it genuinely is one (§4.1).
         if ($kpi->owner_id && Str::isUuid((string) $kpi->owner_id)) {
             $payload['owner_external_uuid'] = $kpi->owner_id;
+        }
+        // ISO traceability (§4.2). FlinkISO stores these as text, but ZaiKPI links
+        // require a UUID — so derive a deterministic UUID per value (stable across
+        // re-syncs) and carry the human name in the label.
+        $links = [];
+        foreach (['standard' => $kpi->standard, 'process' => $kpi->related_process,
+                  'department' => $kpi->related_department, 'site' => $kpi->related_site] as $type => $value) {
+            if ($value) {
+                $links[] = [
+                    'link_type' => $type,
+                    'external_uuid' => Uuid::uuid5(Uuid::NAMESPACE_URL, "flinkiso:$type:$value")->toString(),
+                    'label' => (string) $value,
+                ];
+            }
+        }
+        if ($links) {
+            $payload['iso_links'] = $links;
         }
         return array_filter($payload, fn ($v) => $v !== null && $v !== '');
     }

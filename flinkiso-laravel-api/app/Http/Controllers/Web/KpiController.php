@@ -181,6 +181,8 @@ class KpiController extends Controller
             'critical_threshold' => 'nullable|numeric',
             'direction' => 'required|in:higher_better,lower_better',
             'aggregation' => 'required|in:monthly,quarterly,yearly',
+            'frequency' => 'nullable|string|max:40',
+            'data_source' => 'nullable|string|max:255',
             'related_process' => 'nullable|string|max:255',
             'related_site' => 'nullable|string|max:255',
             'related_department' => 'nullable|string|max:255',

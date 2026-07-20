@@ -28,6 +28,16 @@
         <div class="col-sm-6 form-group"><label>Calculation method</label><input class="form-control" name="calculation_method" placeholder="e.g. on-time deliveries / total * 100"></div>
       </div>
       <div class="row">
+        <div class="col-sm-3 form-group"><label>Frequency</label>
+          <select class="form-control" name="frequency">
+            <option value="">(not set)</option>
+            <option value="Daily">Daily</option><option value="Weekly">Weekly</option>
+            <option value="Monthly">Monthly</option><option value="Quarterly">Quarterly</option>
+            <option value="Annually">Annually</option>
+          </select></div>
+        <div class="col-sm-9 form-group"><label>Data source</label><input class="form-control" name="data_source" placeholder="e.g. ERP export, LIMS, manual entry"></div>
+      </div>
+      <div class="row">
         <div class="col-sm-4 form-group"><label>Related process</label><input class="form-control" name="related_process"></div>
         <div class="col-sm-4 form-group"><label>Related site</label><input class="form-control" name="related_site"></div>
         <div class="col-sm-4 form-group"><label>Related department</label><input class="form-control" name="related_department"></div>

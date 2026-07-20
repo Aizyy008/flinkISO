@@ -73,6 +73,8 @@
         <tr><th>Warning / Critical</th><td>{{ $kpi->warning_threshold ?? '—' }} / {{ $kpi->critical_threshold ?? '—' }}</td></tr>
         <tr><th>Direction</th><td>{{ str_replace('_',' ',$kpi->direction) }}</td></tr>
         <tr><th>Aggregation</th><td>{{ ucfirst($kpi->aggregation) }}</td></tr>
+        <tr><th>Frequency</th><td>{{ $kpi->frequency ?: '—' }}</td></tr>
+        <tr><th>Data source</th><td>{{ $kpi->data_source ?: '—' }}</td></tr>
         <tr><th>Calculation</th><td>{{ $kpi->calculation_method ?: '—' }}</td></tr>
         <tr><th>Process / Site / Dept</th><td>{{ collect([$kpi->related_process,$kpi->related_site,$kpi->related_department])->filter()->implode(' / ') ?: '—' }}</td></tr>
       </table></div>
