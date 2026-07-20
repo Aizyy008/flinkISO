@@ -77,6 +77,25 @@
         <tr><th>Process / Site / Dept</th><td>{{ collect([$kpi->related_process,$kpi->related_site,$kpi->related_department])->filter()->implode(' / ') ?: '—' }}</td></tr>
       </table></div>
     </div>
+    @if(config('zaikpi.enabled'))
+    <div class="box box-default">
+      <div class="box-header with-border"><h3 class="box-title">ZaiKPI sync</h3></div>
+      <div class="box-body">
+        @php $zs = $kpi->zaikpi_status; @endphp
+        <p>Status:
+          @if($zs === 'synced')<span class="label label-success">Synced</span>
+          @elseif($zs === 'failed')<span class="label label-danger">Failed</span>
+          @else<span class="label label-default">Not synced</span>@endif
+        </p>
+        @if($kpi->zaikpi_synced_at)<p class="text-muted qms-sign">Last synced {{ $kpi->zaikpi_synced_at->format('d M Y H:i') }}</p>@endif
+        @if($zs === 'failed' && $kpi->zaikpi_error)<p class="text-danger" style="font-size:12px;">{{ $kpi->zaikpi_error }}</p>@endif
+        <form method="post" action="/kpi/{{ $kpi->id }}/sync">
+          @csrf
+          <button class="btn btn-default btn-sm"><i class="fa fa-cloud-upload"></i> Sync to ZaiKPI now</button>
+        </form>
+      </div>
+    </div>
+    @endif
     <div class="box box-default">
       <div class="box-header with-border"><h3 class="box-title">Record a result</h3></div>
       <form method="post" action="/kpi/{{ $kpi->id }}/result">

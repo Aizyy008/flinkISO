@@ -18,6 +18,7 @@ class Kpi extends Model
         'target_value' => 'decimal:4',
         'warning_threshold' => 'decimal:4',
         'critical_threshold' => 'decimal:4',
+        'zaikpi_synced_at' => 'datetime',
     ];
 
     public function results()

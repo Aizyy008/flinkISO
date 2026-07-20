@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SyncKpiToZaiKpi;
 use App\Models\Qms\Kpi;
+use App\Services\Integration\ZaiKpiClient;
 use App\Services\Qms\AuditTrailService;
 use App\Services\Qms\WorkflowEngine;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * KPI Engine (Project 1 M3 / FlickISO §E). KPI definitions with targets and
@@ -76,6 +79,7 @@ class KpiController extends Controller
         $data['created_by'] = $u['id'];
         $kpi = Kpi::create($data);
         $this->audit->record('qms_kpi', $kpi->id, 'create', ['user_id' => $u['id'], 'username' => $u['username'], 'changes' => ['new' => $kpi->only(['reference', 'name', 'target_value'])]]);
+        $this->pushToZaiKpi($kpi);
         return redirect('/kpi/' . $kpi->id)->with('ok', "KPI {$kpi->reference} defined.");
     }
 
@@ -90,7 +94,42 @@ class KpiController extends Controller
         $kpi = Kpi::findOrFail($id);
         $kpi->update($this->validated($request));
         $this->audit->record('qms_kpi', $kpi->id, 'update', ['user_id' => $this->user($request)['id'], 'username' => $this->user($request)['username'], 'changes' => ['name' => $kpi->name]]);
+        $this->pushToZaiKpi($kpi);
         return back()->with('ok', 'KPI updated.');
+    }
+
+    /**
+     * Push a KPI to ZaiKPI (queued). Wrapped so an integration hiccup never
+     * breaks the KPI save — under the sync queue driver the job runs inline.
+     */
+    private function pushToZaiKpi(Kpi $kpi): void
+    {
+        if (! config('zaikpi.enabled')) {
+            return;
+        }
+        try {
+            SyncKpiToZaiKpi::dispatch($kpi->id, (string) Str::uuid());
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
+    /** Manual "Sync to ZaiKPI" from the KPI screen — immediate, with feedback. */
+    public function sync(Request $request, string $id, ZaiKpiClient $client)
+    {
+        $kpi = Kpi::findOrFail($id);
+        if (! $client->enabled()) {
+            return back()->with('error', 'ZaiKPI sync is not configured for this environment.');
+        }
+        $u = $this->user($request);
+        $res = $client->syncAndPersist($kpi, (string) Str::uuid());
+        $this->audit->record('qms_kpi', $kpi->id, 'zaikpi_sync', ['user_id' => $u['id'], 'username' => $u['username'], 'changes' => [
+            'action' => $res['action'] ?? null, 'ok' => $res['ok'], 'status' => $res['status'] ?? null, 'correlation_id' => $res['correlation_id'] ?? null,
+        ]]);
+
+        return $res['ok']
+            ? back()->with('ok', "KPI {$res['action']} in ZaiKPI (ref {$kpi->reference}).")
+            : back()->with('error', 'ZaiKPI sync failed: ' . ($res['error'] ?? 'unknown') . '.');
     }
 
     /** Record a periodic result; a threshold breach fires the workflow engine. */

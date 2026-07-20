@@ -132,6 +132,7 @@ Route::middleware('webauth')->group(function () {
     Route::get('/kpi/{id}', [KpiController::class, 'show']);
     Route::put('/kpi/{id}', [KpiController::class, 'update']);
     Route::post('/kpi/{id}/result', [KpiController::class, 'storeResult']);
+    Route::post('/kpi/{id}/sync', [KpiController::class, 'sync']); // push to ZaiKPI
 
     // Workflow rules
     Route::get('/workflows', [WorkflowController::class, 'index']);
