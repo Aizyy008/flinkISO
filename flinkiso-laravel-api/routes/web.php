@@ -2,12 +2,18 @@
 
 use App\Http\Controllers\Web\AuditController;
 use App\Http\Controllers\Web\AuthController;
+use App\Http\Controllers\Web\CalibrationController;
 use App\Http\Controllers\Web\CapaController;
 use App\Http\Controllers\Web\DocumentController;
 use App\Http\Controllers\Web\EvidenceController;
+use App\Http\Controllers\Web\FormBridgeController;
+use App\Http\Controllers\Web\FormBuilderController;
+use App\Http\Controllers\Web\HaccpController;
+use App\Http\Controllers\Web\KpiController;
 use App\Http\Controllers\Web\IncidentController;
 use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\RiskController;
+use App\Http\Controllers\Web\TrainingController;
 use App\Http\Controllers\Web\WorkflowController;
 use Illuminate\Support\Facades\Route;
 
@@ -65,6 +71,17 @@ Route::middleware('webauth')->group(function () {
     Route::post('/audits/{id}/checklist/{itemId}/response', [AuditController::class, 'recordResponse']);
     Route::post('/audits/{id}/finding', [AuditController::class, 'addFinding']);
 
+    // HACCP / Food Safety (ISO 22000)
+    Route::get('/haccp', [HaccpController::class, 'index']);
+    Route::get('/haccp/create', [HaccpController::class, 'create']);
+    Route::post('/haccp', [HaccpController::class, 'store']);
+    Route::get('/haccp/{id}', [HaccpController::class, 'show']);
+    Route::post('/haccp/{id}/transition', [HaccpController::class, 'transition']);
+    Route::post('/haccp/{id}/step', [HaccpController::class, 'addStep']);
+    Route::post('/haccp/{id}/hazard', [HaccpController::class, 'addHazard']);
+    Route::post('/haccp/{id}/ccp', [HaccpController::class, 'addCcp']);
+    Route::post('/haccp/ccp/{ccpId}/log', [HaccpController::class, 'logCcp']);
+
     // Risk register
     Route::get('/risks', [RiskController::class, 'index']);
     Route::get('/risks/create', [RiskController::class, 'create']);
@@ -75,6 +92,47 @@ Route::middleware('webauth')->group(function () {
     // Evidence (shared)
     Route::post('/evidence', [EvidenceController::class, 'store']);
     Route::get('/evidence/{id}/download', [EvidenceController::class, 'download']);
+
+    // Training & Competency
+    Route::get('/training', [TrainingController::class, 'index']);
+    Route::get('/training/create', [TrainingController::class, 'create']);
+    Route::post('/training', [TrainingController::class, 'store']);
+    Route::get('/training/{id}', [TrainingController::class, 'show']);
+    Route::post('/training/{id}/assign', [TrainingController::class, 'assign']);
+    Route::post('/training/record/{recordId}/complete', [TrainingController::class, 'complete']);
+
+    // Assets & Calibration
+    Route::get('/assets', [CalibrationController::class, 'index']);
+    Route::get('/assets/create', [CalibrationController::class, 'create']);
+    Route::post('/assets', [CalibrationController::class, 'store']);
+    Route::get('/assets/{id}', [CalibrationController::class, 'show']);
+    Route::post('/assets/{id}/calibration', [CalibrationController::class, 'record']);
+
+    // Form Builder bridge (read legacy custom forms)
+    Route::get('/forms', [FormBridgeController::class, 'index']);
+    Route::get('/forms/{id}', [FormBridgeController::class, 'show']);
+
+    // Drag & Drop Form Builder (build forms, fill, submissions -> record + workflow)
+    Route::get('/form-builder', [FormBuilderController::class, 'index']);
+    Route::get('/form-builder/create', [FormBuilderController::class, 'create']);
+    Route::post('/form-builder', [FormBuilderController::class, 'store']);
+    Route::get('/form-builder/{id}/edit', [FormBuilderController::class, 'edit']);
+    Route::put('/form-builder/{id}', [FormBuilderController::class, 'update']);
+    Route::delete('/form-builder/{id}', [FormBuilderController::class, 'destroy']);
+    Route::get('/form-builder/{id}/fill', [FormBuilderController::class, 'fill']);
+    Route::post('/form-builder/{id}/submit', [FormBuilderController::class, 'submit']);
+    Route::get('/form-builder/{id}/submissions', [FormBuilderController::class, 'submissions']);
+
+    // KPI Engine (definitions, results, calculated dashboard, report)
+    Route::get('/kpi', [KpiController::class, 'index']);
+    Route::get('/kpi/dashboard', [KpiController::class, 'dashboard']);
+    Route::get('/kpi/report', [KpiController::class, 'report']);
+    Route::get('/kpi/create', [KpiController::class, 'create']);
+    Route::post('/kpi', [KpiController::class, 'store']);
+    Route::get('/kpi/{id}', [KpiController::class, 'show']);
+    Route::put('/kpi/{id}', [KpiController::class, 'update']);
+    Route::post('/kpi/{id}/result', [KpiController::class, 'storeResult']);
+    Route::post('/kpi/{id}/sync', [KpiController::class, 'sync']); // push to ZaiKPI
 
     // Workflow rules
     Route::get('/workflows', [WorkflowController::class, 'index']);
