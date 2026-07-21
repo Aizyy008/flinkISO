@@ -17,6 +17,7 @@ class Incident extends Model
     protected $casts = [
         'detected_date' => 'date',
         'due_date' => 'date',
+        'iso_overlay' => 'array',
     ];
 
     public const TYPES = ['non_conformity', 'deviation', 'incident', 'complaint', 'near_miss'];

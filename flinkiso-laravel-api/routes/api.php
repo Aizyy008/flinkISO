@@ -2,13 +2,19 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\HealthController;
+use App\Http\Controllers\Api\Qms\AiController;
 use App\Http\Controllers\Api\Qms\AuditTrailController;
+use App\Http\Controllers\Api\Qms\CalibrationController;
 use App\Http\Controllers\Api\Qms\CapaController;
 use App\Http\Controllers\Api\Qms\DocumentControlController;
 use App\Http\Controllers\Api\Qms\EvidenceController;
+use App\Http\Controllers\Api\Qms\HaccpController;
 use App\Http\Controllers\Api\Qms\IncidentController;
+use App\Http\Controllers\Api\Qms\KpiController;
 use App\Http\Controllers\Api\Qms\NotificationController;
 use App\Http\Controllers\Api\Qms\RiskController;
+use App\Http\Controllers\Api\Qms\TrainingController;
+use App\Http\Controllers\Api\Qms\ValidationController;
 use App\Http\Controllers\Api\Qms\WorkflowController;
 use Illuminate\Support\Facades\Route;
 
@@ -73,5 +79,49 @@ Route::middleware('jwt')->group(function () {
         // Audit trail (FDA 21 CFR Part 11)
         Route::get('/audit-trail', [AuditTrailController::class, 'index']);
         Route::get('/audit-trail/verify', [AuditTrailController::class, 'verify']);
+
+        // ---- Milestone 2.1 modules exposed over the API (M2.2) ----
+
+        // KPI Engine
+        Route::get('/kpis', [KpiController::class, 'index']);
+        Route::post('/kpis', [KpiController::class, 'store']);
+        Route::get('/kpis/dashboard', [KpiController::class, 'dashboard']);
+        Route::get('/kpis/{id}', [KpiController::class, 'show']);
+        Route::post('/kpis/{id}/results', [KpiController::class, 'storeResult']);
+
+        // Training & Competency
+        Route::get('/trainings', [TrainingController::class, 'index']);
+        Route::post('/trainings', [TrainingController::class, 'store']);
+        Route::get('/trainings/{id}', [TrainingController::class, 'show']);
+        Route::post('/trainings/{id}/assign', [TrainingController::class, 'assign']);
+        Route::post('/training-records/{recordId}/complete', [TrainingController::class, 'complete']);
+
+        // Assets & Calibration
+        Route::get('/assets', [CalibrationController::class, 'index']);
+        Route::post('/assets', [CalibrationController::class, 'store']);
+        Route::get('/assets/{id}', [CalibrationController::class, 'show']);
+        Route::post('/assets/{id}/calibrations', [CalibrationController::class, 'record']);
+
+        // GMP / Validation logs
+        Route::get('/validations', [ValidationController::class, 'index']);
+        Route::post('/validations', [ValidationController::class, 'store']);
+        Route::get('/validations/{id}', [ValidationController::class, 'show']);
+        Route::patch('/validations/{id}/status', [ValidationController::class, 'updateStatus']);
+
+        // AI microservice (M2.2): risk / KPI forecast / CAPA suggest / HACCP anomaly
+        Route::get('/ai/health', [AiController::class, 'health']);
+        Route::post('/ai/risk-score', [AiController::class, 'riskScore']);
+        Route::post('/kpis/{id}/forecast', [AiController::class, 'kpiForecast']);
+        Route::post('/incidents/{id}/capa-suggest', [AiController::class, 'capaSuggest']);
+        Route::post('/haccp/ccps/{ccpId}/anomaly', [AiController::class, 'haccpAnomaly']);
+
+        // HACCP (ISO 22000)
+        Route::get('/haccp/plans', [HaccpController::class, 'index']);
+        Route::post('/haccp/plans', [HaccpController::class, 'store']);
+        Route::get('/haccp/plans/{id}', [HaccpController::class, 'show']);
+        Route::post('/haccp/plans/{id}/steps', [HaccpController::class, 'addStep']);
+        Route::post('/haccp/plans/{id}/hazards', [HaccpController::class, 'addHazard']);
+        Route::post('/haccp/plans/{id}/ccps', [HaccpController::class, 'addCcp']);
+        Route::post('/haccp/ccps/{ccpId}/logs', [HaccpController::class, 'logCcp']);
     });
 });

@@ -63,7 +63,18 @@ class IncidentController extends Controller
             'containment_action' => 'nullable|string',
             'assigned_to' => 'nullable|string|max:36',
             'due_date' => 'nullable|date',
+            'iso_standard' => 'nullable|in:' . implode(',', array_keys(config('iso_overlays'))),
+            'overlay' => 'nullable|array',
         ]);
+        // Keep only the overlay fields defined for the chosen standard.
+        if (!empty($data['iso_standard'])) {
+            $allowed = array_keys(config("iso_overlays.{$data['iso_standard']}.fields", []));
+            $data['iso_overlay'] = array_filter(
+                array_intersect_key($request->input('overlay', []), array_flip($allowed)),
+                fn ($v) => $v !== null && $v !== ''
+            ) ?: null;
+        }
+        unset($data['overlay']);
         $u = $this->user($request);
         $data['reference'] = $this->nextReference();
         $data['status'] = 'open';

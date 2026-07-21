@@ -52,7 +52,47 @@
             </div>
             <div class="col-sm-6 form-group"><label>Due date</label><input type="date" class="form-control" name="due_date" value="{{ old('due_date') }}"></div>
           </div>
+
+          {{-- ISO overlay: standard-specific fields (M2.2) --}}
+          @php $overlays = config('iso_overlays'); @endphp
+          <div class="row">
+            <div class="col-sm-6 form-group">
+              <label>ISO standard (overlay)</label>
+              <select class="form-control" id="iso_standard" name="iso_standard">
+                <option value="">(none)</option>
+                @foreach($overlays as $std => $cfg)<option value="{{ $std }}">{{ $cfg['label'] }}</option>@endforeach
+              </select>
+            </div>
+          </div>
+          @foreach($overlays as $std => $cfg)
+          <div class="iso-overlay-group" data-std="{{ $std }}" style="display:none;">
+            <div class="box box-solid" style="box-shadow:none;border:1px dashed #d2d6de;">
+              <div class="box-header"><h4 class="box-title" style="font-size:14px;">{{ $cfg['label'] }} fields</h4></div>
+              <div class="box-body"><div class="row">
+                @foreach($cfg['fields'] as $key => $f)
+                <div class="col-sm-4 form-group">
+                  <label>{{ $f['label'] }}</label>
+                  @if(($f['type'] ?? 'text') === 'select')
+                    <select class="form-control" name="overlay[{{ $key }}]"><option value="">—</option>@foreach($f['options'] as $opt)<option value="{{ $opt }}">{{ $opt }}</option>@endforeach</select>
+                  @else
+                    <input type="{{ $f['type']==='number'?'number':'text' }}" class="form-control" name="overlay[{{ $key }}]">
+                  @endif
+                </div>
+                @endforeach
+              </div></div>
+            </div>
+          </div>
+          @endforeach
         </div>
+        @section('scripts')
+        <script>
+        (function(){
+          var sel=document.getElementById('iso_standard');
+          function sync(){var v=sel.value;document.querySelectorAll('.iso-overlay-group').forEach(function(g){g.style.display=(g.getAttribute('data-std')===v)?'block':'none';});}
+          if(sel){sel.addEventListener('change',sync);sync();}
+        })();
+        </script>
+        @append
         <div class="box-footer">
           <button class="btn btn-primary"><i class="fa fa-check"></i> Create incident</button>
           <a class="btn btn-default" href="/incidents">Cancel</a>

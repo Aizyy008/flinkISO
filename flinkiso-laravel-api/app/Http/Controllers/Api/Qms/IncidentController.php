@@ -39,7 +39,13 @@ class IncidentController extends Controller
             'severity' => 'in:low,medium,high,critical',
             'source' => 'nullable|string|max:60',
             'company_id' => 'nullable|string|max:36',
+            'iso_standard' => 'nullable|in:' . implode(',', array_keys(config('iso_overlays'))),
+            'iso_overlay' => 'nullable|array',
         ]);
+        if (!empty($data['iso_standard'])) {
+            $allowed = array_keys(config("iso_overlays.{$data['iso_standard']}.fields", []));
+            $data['iso_overlay'] = array_intersect_key($data['iso_overlay'] ?? [], array_flip($allowed)) ?: null;
+        }
 
         $user = $request->attributes->get('flink_user');
         $data['reference'] = $this->nextReference();

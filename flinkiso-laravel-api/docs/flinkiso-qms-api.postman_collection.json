@@ -1,0 +1,112 @@
+{
+  "info": {
+    "name": "FlinkISO QMS API (Milestone 2.2)",
+    "description": "JWT-authenticated REST API for the FlinkISO QMS. Set {{base_url}} (e.g. https://qms.flinkiso.dctrd.us), then run Auth > Login to capture {{token}}; all other requests use it automatically.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://127.0.0.1:8001" },
+    { "key": "token", "value": "" },
+    { "key": "id", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            { "listen": "test", "script": { "exec": [
+              "var j = pm.response.json();",
+              "if (j.token) { pm.collectionVariables.set('token', j.token); }",
+              "pm.test('got token', function () { pm.expect(j.token).to.be.a('string'); });"
+            ], "type": "text/javascript" } }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"crf9090@hotmail.com\",\n  \"password\": \"REPLACE_WITH_PASSWORD\"\n}" },
+            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api","auth","login"] }
+          }
+        },
+        { "name": "Me", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/me", "host": ["{{base_url}}"], "path": ["api","me"] } } },
+        { "name": "Health (public)", "request": { "auth": {"type":"noauth"}, "method": "GET", "url": { "raw": "{{base_url}}/api/health", "host": ["{{base_url}}"], "path": ["api","health"] } } }
+      ]
+    },
+    {
+      "name": "Document Control",
+      "item": [
+        { "name": "List documents", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/documents", "host": ["{{base_url}}"], "path": ["api","qms","documents"] } } },
+        { "name": "Create document", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Quality Manual\",\n  \"doc_type\": \"manual\",\n  \"standard\": \"ISO 9001\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/documents", "host": ["{{base_url}}"], "path": ["api","qms","documents"] } } },
+        { "name": "Transition document", "request": { "method": "PATCH", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"to\": \"review\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/documents/{{id}}/transition", "host": ["{{base_url}}"], "path": ["api","qms","documents","{{id}}","transition"] } } }
+      ]
+    },
+    {
+      "name": "Incidents & CAPA",
+      "item": [
+        { "name": "List incidents", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/incidents?status=open", "host": ["{{base_url}}"], "path": ["api","qms","incidents"], "query": [{"key":"status","value":"open"}] } } },
+        { "name": "Create incident (+ ISO 45001 overlay)", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Slip on wet floor\",\n  \"type\": \"incident\",\n  \"severity\": \"high\",\n  \"iso_standard\": \"ISO 45001\",\n  \"iso_overlay\": { \"injury_type\": \"Sprain\", \"body_part\": \"Ankle\", \"days_lost\": 3 }\n}" }, "url": { "raw": "{{base_url}}/api/qms/incidents", "host": ["{{base_url}}"], "path": ["api","qms","incidents"] } } },
+        { "name": "Update incident status", "request": { "method": "PATCH", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"status\": \"investigating\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/incidents/{{id}}/status", "host": ["{{base_url}}"], "path": ["api","qms","incidents","{{id}}","status"] } } },
+        { "name": "List CAPA", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/capa", "host": ["{{base_url}}"], "path": ["api","qms","capa"] } } },
+        { "name": "Verify CAPA effectiveness", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"effective\": true,\n  \"notes\": \"No recurrence in 90 days\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/capa/{{id}}/verify", "host": ["{{base_url}}"], "path": ["api","qms","capa","{{id}}","verify"] } } }
+      ]
+    },
+    {
+      "name": "Risk & Audit Trail",
+      "item": [
+        { "name": "List risks", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/risks", "host": ["{{base_url}}"], "path": ["api","qms","risks"] } } },
+        { "name": "Create risk", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Supplier delivery failure\",\n  \"likelihood\": 3,\n  \"severity\": 4,\n  \"detection\": 2\n}" }, "url": { "raw": "{{base_url}}/api/qms/risks", "host": ["{{base_url}}"], "path": ["api","qms","risks"] } } },
+        { "name": "Verify audit trail chain", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/audit-trail/verify", "host": ["{{base_url}}"], "path": ["api","qms","audit-trail","verify"] } } }
+      ]
+    },
+    {
+      "name": "KPI",
+      "item": [
+        { "name": "List KPIs", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/kpis?area=quality", "host": ["{{base_url}}"], "path": ["api","qms","kpis"], "query": [{"key":"area","value":"quality"}] } } },
+        { "name": "KPI dashboard (calculated)", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/kpis/dashboard", "host": ["{{base_url}}"], "path": ["api","qms","kpis","dashboard"] } } },
+        { "name": "Create KPI (16 fields)", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"name\": \"On-Time Delivery\",\n  \"area\": \"quality\",\n  \"standard\": \"ISO 9001\",\n  \"unit\": \"%\",\n  \"target_value\": 95,\n  \"warning_threshold\": 90,\n  \"critical_threshold\": 85,\n  \"direction\": \"higher_better\",\n  \"aggregation\": \"monthly\",\n  \"frequency\": \"Monthly\",\n  \"data_source\": \"ERP export\",\n  \"related_department\": \"Logistics\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/kpis", "host": ["{{base_url}}"], "path": ["api","qms","kpis"] } } },
+        { "name": "Record KPI result", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"period_label\": \"2026-05\",\n  \"period_date\": \"2026-05-31\",\n  \"value\": 88\n}" }, "url": { "raw": "{{base_url}}/api/qms/kpis/{{id}}/results", "host": ["{{base_url}}"], "path": ["api","qms","kpis","{{id}}","results"] } } }
+      ]
+    },
+    {
+      "name": "Training & Calibration",
+      "item": [
+        { "name": "List trainings", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/trainings", "host": ["{{base_url}}"], "path": ["api","qms","trainings"] } } },
+        { "name": "Assign training", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"user_id\": \"<flink-user-uuid>\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/trainings/{{id}}/assign", "host": ["{{base_url}}"], "path": ["api","qms","trainings","{{id}}","assign"] } } },
+        { "name": "List assets (with status)", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/assets", "host": ["{{base_url}}"], "path": ["api","qms","assets"] } } },
+        { "name": "Record calibration", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"performed_date\": \"2026-07-01\",\n  \"result\": \"pass\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/assets/{{id}}/calibrations", "host": ["{{base_url}}"], "path": ["api","qms","assets","{{id}}","calibrations"] } } }
+      ]
+    },
+    {
+      "name": "HACCP",
+      "item": [
+        { "name": "List HACCP plans", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/haccp/plans", "host": ["{{base_url}}"], "path": ["api","qms","haccp","plans"] } } },
+        { "name": "Create HACCP plan", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"product\": \"Fresh Milk 3.5%\",\n  \"team\": \"QA Manager, Production Lead\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/haccp/plans", "host": ["{{base_url}}"], "path": ["api","qms","haccp","plans"] } } },
+        { "name": "Log CCP reading (deviation -> CAPA)", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"batch_no\": \"B-12\",\n  \"measured_value\": 68,\n  \"measured_time\": \"08:15\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/haccp/ccps/{{id}}/logs", "host": ["{{base_url}}"], "path": ["api","qms","haccp","ccps","{{id}}","logs"] } } }
+      ]
+    },
+    {
+      "name": "GMP / Validation",
+      "item": [
+        { "name": "List validations", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/validations", "host": ["{{base_url}}"], "path": ["api","qms","validations"] } } },
+        { "name": "Create validation", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"type\": \"equipment_oq\",\n  \"title\": \"Pasteurizer OQ 2026\",\n  \"subject\": \"Pasteurizer Line 1\",\n  \"result\": \"pass\",\n  \"valid_until\": \"2027-07-20\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/validations", "host": ["{{base_url}}"], "path": ["api","qms","validations"] } } },
+        { "name": "Approve validation", "request": { "method": "PATCH", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"status\": \"approved\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/validations/{{id}}/status", "host": ["{{base_url}}"], "path": ["api","qms","validations","{{id}}","status"] } } }
+      ]
+    },
+    {
+      "name": "AI microservice",
+      "item": [
+        { "name": "AI health", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/ai/health", "host": ["{{base_url}}"], "path": ["api","qms","ai","health"] } } },
+        { "name": "Risk score", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"likelihood\": 4,\n  \"severity\": 5,\n  \"detection\": 3,\n  \"context\": \"Listeria risk in pasteurization\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/ai/risk-score", "host": ["{{base_url}}"], "path": ["api","qms","ai","risk-score"] } } },
+        { "name": "KPI forecast (from stored results)", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/kpis/{{id}}/forecast", "host": ["{{base_url}}"], "path": ["api","qms","kpis","{{id}}","forecast"] } } },
+        { "name": "CAPA suggestions (from incident)", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/incidents/{{id}}/capa-suggest", "host": ["{{base_url}}"], "path": ["api","qms","incidents","{{id}}","capa-suggest"] } } },
+        { "name": "HACCP anomaly (from CCP logs)", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/haccp/ccps/{{id}}/anomaly", "host": ["{{base_url}}"], "path": ["api","qms","haccp","ccps","{{id}}","anomaly"] } } }
+      ]
+    }
+  ]
+}

@@ -54,6 +54,18 @@
   </div>
 </div>
 
+@if($incident->iso_standard)
+@php $ov = config("iso_overlays.{$incident->iso_standard}"); $vals = $incident->iso_overlay ?? []; @endphp
+<div class="box box-default">
+  <div class="box-header with-border"><h3 class="box-title">ISO overlay — {{ $ov['label'] ?? $incident->iso_standard }}</h3></div>
+  <div class="box-body no-padding"><table class="table">
+    @foreach(($ov['fields'] ?? []) as $key => $f)
+    <tr><th style="width:35%;">{{ $f['label'] }}</th><td>{{ $vals[$key] ?? '—' }}</td></tr>
+    @endforeach
+  </table></div>
+</div>
+@endif
+
 <div class="box box-default">
   <div class="box-header with-border">
     <h3 class="box-title">Corrective / Preventive Actions (CAPA)</h3>

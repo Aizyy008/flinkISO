@@ -14,6 +14,7 @@ use App\Http\Controllers\Web\IncidentController;
 use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\RiskController;
 use App\Http\Controllers\Web\TrainingController;
+use App\Http\Controllers\Web\ValidationController;
 use App\Http\Controllers\Web\WorkflowController;
 use Illuminate\Support\Facades\Route;
 
@@ -100,6 +101,13 @@ Route::middleware('webauth')->group(function () {
     Route::get('/training/{id}', [TrainingController::class, 'show']);
     Route::post('/training/{id}/assign', [TrainingController::class, 'assign']);
     Route::post('/training/record/{recordId}/complete', [TrainingController::class, 'complete']);
+
+    // GMP / Validation logs
+    Route::get('/validations', [ValidationController::class, 'index']);
+    Route::get('/validations/create', [ValidationController::class, 'create']);
+    Route::post('/validations', [ValidationController::class, 'store']);
+    Route::get('/validations/{id}', [ValidationController::class, 'show']);
+    Route::post('/validations/{id}/transition', [ValidationController::class, 'transition']);
 
     // Assets & Calibration
     Route::get('/assets', [CalibrationController::class, 'index']);
