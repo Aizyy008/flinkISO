@@ -31,16 +31,27 @@
         </p>
         <p class="text-muted qms-sign" style="margin-top:-4px;">Lifecycle: Draft → Review → Approved → Released → Obsolete. The Reviewer completes review, the Approver approves and the Publisher releases; Approve and Release require an authenticated electronic signature.</p>
         <div style="margin-top:8px;">
+          @php
+            // Only show the action for the role that may perform it (the backend also enforces this).
+            $canDo = [
+              'review'   => $myRoles['creator'] || $myRoles['owner'],   // submit for review
+              'approved' => $myRoles['approver'] && $document->reviewed_at,   // only after the reviewer signs off
+              'released' => $myRoles['publisher'],
+              'obsolete' => $myRoles['approver'] || $myRoles['publisher'],
+              'draft'    => $myRoles['reviewer'] || $myRoles['approver'] || $myRoles['publisher'],
+            ];
+          @endphp
           @if($document->status === 'review')
             @if($document->reviewed_at)
               <span class="label label-success" style="padding:7px 10px;font-size:12px;"><i class="fa fa-check"></i> Reviewed by {{ $uName($document->reviewed_by) }}</span>
-            @else
+            @elseif($myRoles['reviewer'])
               <form method="post" action="/documents/{{ $document->id }}/review-signoff" style="display:inline;">
                 @csrf<button class="btn btn-sm btn-info"><i class="fa fa-eye"></i> Complete review</button>
               </form>
             @endif
           @endif
           @foreach($allowed as $to)
+            @continue(empty($canDo[$to]))
             @if(in_array($to, ['approved','released'], true))
               <button type="button" class="btn btn-sm btn-success js-sign"
                 data-url="/documents/{{ $document->id }}/transition" data-field="to" data-value="{{ $to }}"
@@ -63,6 +74,10 @@
               </form>
             @endif
           @endforeach
+          @php $noActions = ($document->status !== 'review' || $document->reviewed_at || !$myRoles['reviewer']) && collect($allowed)->every(fn($t) => empty($canDo[$t])); @endphp
+          @if($noActions && !$editable)
+            <span class="text-muted"><i class="fa fa-info-circle"></i> No actions available for your role at this stage.</span>
+          @endif
           @if($editable)
             <button class="btn btn-sm btn-default" data-toggle="collapse" data-target="#editBox"><i class="fa fa-pencil"></i> Edit details</button>
           @endif

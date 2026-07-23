@@ -116,7 +116,15 @@ class DocumentController extends Controller
             ->findOrFail($id);
         $audit = AuditTrail::where('entity_type', 'qms_document')->where('entity_id', $id)->orderByDesc('seq')->get();
         $signatures = ElectronicSignature::where('entity_id', $id)->orderByDesc('signed_at')->get();
-        return view('documents.show', ['document' => $document, 'audit' => $audit, 'signatures' => $signatures] + $this->refData());
+        $u = $this->user($request);
+        $myRoles = [
+            'creator' => $this->roles->has($u['id'], 'creator'),
+            'reviewer' => $this->roles->has($u['id'], 'reviewer'),
+            'approver' => $this->roles->has($u['id'], 'approver'),
+            'publisher' => $this->roles->has($u['id'], 'publisher'),
+            'owner' => $document->owner_id === $u['id'],
+        ];
+        return view('documents.show', ['document' => $document, 'audit' => $audit, 'signatures' => $signatures, 'myRoles' => $myRoles] + $this->refData());
     }
 
     public function transition(Request $request, string $id)
