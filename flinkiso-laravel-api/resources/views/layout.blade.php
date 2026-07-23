@@ -106,6 +106,7 @@
         <li class="@yield('menu_forms')"><a href="/forms"><i class="fa fa-list-alt"></i> <span>Forms</span></a></li>
         <li class="@yield('menu_formbuilder')"><a href="/form-builder"><i class="fa fa-object-group"></i> <span>Form Builder</span></a></li>
         <li class="header">AUTOMATION</li>
+        <li class="@yield('menu_users')"><a href="/users"><i class="fa fa-users"></i> <span>Users &amp; Roles</span></a></li>
         <li class="@yield('menu_workflows')"><a href="/workflows"><i class="fa fa-cogs"></i> <span>Workflow rules</span></a></li>
         <li class="@yield('menu_notifications')"><a href="/notifications"><i class="fa fa-bell-o"></i> <span>Notifications</span> <span class="pull-right-container"><small class="label pull-right bg-yellow notif-badge" @if(!$qmsUnread)style="display:none;"@endif>{{ $qmsUnread }}</small></span></a></li>
       </ul>
