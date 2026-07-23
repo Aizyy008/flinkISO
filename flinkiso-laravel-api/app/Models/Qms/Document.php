@@ -17,6 +17,7 @@ class Document extends Model
     protected $casts = [
         'effective_date' => 'date',
         'review_due_date' => 'date',
+        'reviewed_at' => 'datetime',
     ];
 
     /** ISO identifier, e.g. "Issue 1, Rev 2". */

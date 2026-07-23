@@ -36,6 +36,7 @@ Route::middleware('webauth')->group(function () {
     Route::post('/documents/{id}/edit', [DocumentController::class, 'editMeta']);
     Route::get('/documents/{id}/pdf', [DocumentController::class, 'pdf']);
     Route::post('/documents/{id}/transition', [DocumentController::class, 'transition']);
+    Route::post('/documents/{id}/review-signoff', [DocumentController::class, 'reviewSignoff']);
     Route::post('/documents/{id}/version', [DocumentController::class, 'newVersion']);
     Route::post('/documents/{id}/change-request', [DocumentController::class, 'changeRequest']);
     Route::post('/documents/{id}/change-request/{cr}/decide', [DocumentController::class, 'decideChangeRequest']);
@@ -147,6 +148,10 @@ Route::middleware('webauth')->group(function () {
     Route::get('/workflows/create', [WorkflowController::class, 'create']);
     Route::post('/workflows', [WorkflowController::class, 'store']);
     Route::post('/workflows/{id}/toggle', [WorkflowController::class, 'toggle']);
+
+    // Users & Roles (QMS document-workflow role assignment)
+    Route::get('/users', [\App\Http\Controllers\Web\UsersController::class, 'index']);
+    Route::post('/users/{userId}/roles', [\App\Http\Controllers\Web\UsersController::class, 'update']);
 
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index']);

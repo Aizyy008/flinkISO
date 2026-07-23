@@ -29,9 +29,29 @@
           <span class="label label-default">Issue {{ $document->issue_number ?? 1 }}</span>
           <span class="text-muted" style="margin-left:10px;">{{ $document->category }}@if($document->document_type) / {{ $document->document_type }}@endif</span>
         </p>
-        <p class="text-muted qms-sign" style="margin-top:-4px;">Lifecycle: Draft → Review → Approved → Released → Obsolete. Approve and Release require an authenticated electronic signature.</p>
+        <p class="text-muted qms-sign" style="margin-top:-4px;">Lifecycle: Draft → Review → Approved → Released → Obsolete. The Reviewer completes review, the Approver approves and the Publisher releases; Approve and Release require an authenticated electronic signature.</p>
         <div style="margin-top:8px;">
+          @php
+            // Only show the action for the role that may perform it (the backend also enforces this).
+            $canDo = [
+              'review'   => $myRoles['creator'] || $myRoles['owner'],   // submit for review
+              'approved' => $myRoles['approver'] && $document->reviewed_at,   // only after the reviewer signs off
+              'released' => $myRoles['publisher'],
+              'obsolete' => $myRoles['approver'] || $myRoles['publisher'],
+              'draft'    => $myRoles['reviewer'] || $myRoles['approver'] || $myRoles['publisher'],
+            ];
+          @endphp
+          @if($document->status === 'review')
+            @if($document->reviewed_at)
+              <span class="label label-success" style="padding:7px 10px;font-size:12px;"><i class="fa fa-check"></i> Reviewed by {{ $uName($document->reviewed_by) }}</span>
+            @elseif($myRoles['reviewer'])
+              <form method="post" action="/documents/{{ $document->id }}/review-signoff" style="display:inline;">
+                @csrf<button class="btn btn-sm btn-info"><i class="fa fa-eye"></i> Complete review</button>
+              </form>
+            @endif
+          @endif
           @foreach($allowed as $to)
+            @continue(empty($canDo[$to]))
             @if(in_array($to, ['approved','released'], true))
               <button type="button" class="btn btn-sm btn-success js-sign"
                 data-url="/documents/{{ $document->id }}/transition" data-field="to" data-value="{{ $to }}"
@@ -54,6 +74,10 @@
               </form>
             @endif
           @endforeach
+          @php $noActions = ($document->status !== 'review' || $document->reviewed_at || !$myRoles['reviewer']) && collect($allowed)->every(fn($t) => empty($canDo[$t])); @endphp
+          @if($noActions && !$editable)
+            <span class="text-muted"><i class="fa fa-info-circle"></i> No actions available for your role at this stage.</span>
+          @endif
           @if($editable)
             <button class="btn btn-sm btn-default" data-toggle="collapse" data-target="#editBox"><i class="fa fa-pencil"></i> Edit details</button>
           @endif
@@ -74,8 +98,9 @@
           <tr><th>Review due date</th><td>{{ $document->review_due_date?->toDateString() ?? 'N/A' }}</td></tr>
           <tr><th>Related standard</th><td>{{ $stdName ?? 'N/A' }}</td></tr>
           <tr><th>Related clause</th><td>{{ $document->related_clause_id ?? 'N/A' }}</td></tr>
-          <tr><th>Reviewer</th><td>{{ $uName($document->reviewer_id) ?? 'N/A' }}</td></tr>
+          <tr><th>Reviewer</th><td>{{ $uName($document->reviewer_id) ?? 'N/A' }} @if($document->reviewed_at)<span class="label label-success">reviewed {{ $document->reviewed_at->format('d M Y') }}</span>@endif</td></tr>
           <tr><th>Approver</th><td>{{ $uName($document->approver_id) ?? 'N/A' }}</td></tr>
+          <tr><th>Publisher</th><td>{{ $uName($document->publisher_id) ?? 'N/A' }}</td></tr>
           <tr><th>Process / Site / Dept</th><td>{{ collect([$document->related_process,$document->related_site,$document->related_department])->filter()->implode(' / ') ?: 'N/A' }}</td></tr>
         </table>
       </div>
@@ -128,10 +153,13 @@
         </div>
         <div class="row">
           <div class="col-sm-4 form-group"><label>Reviewer</label>
-            <select class="form-control" name="reviewer_id"><option value="">(unassigned)</option>@foreach($users as $u)<option value="{{ $u->id }}" @selected($document->reviewer_id===$u->id)>{{ $u->name ?: $u->username }}</option>@endforeach</select>
+            <select class="form-control" name="reviewer_id"><option value="">(unassigned)</option>@foreach($reviewers as $u)<option value="{{ $u->id }}" @selected($document->reviewer_id===$u->id)>{{ $u->name ?: $u->username }}</option>@endforeach</select>
           </div>
           <div class="col-sm-4 form-group"><label>Approver</label>
-            <select class="form-control" name="approver_id"><option value="">(unassigned)</option>@foreach($users as $u)<option value="{{ $u->id }}" @selected($document->approver_id===$u->id)>{{ $u->name ?: $u->username }}</option>@endforeach</select>
+            <select class="form-control" name="approver_id"><option value="">(unassigned)</option>@foreach($approvers as $u)<option value="{{ $u->id }}" @selected($document->approver_id===$u->id)>{{ $u->name ?: $u->username }}</option>@endforeach</select>
+          </div>
+          <div class="col-sm-4 form-group"><label>Publisher</label>
+            <select class="form-control" name="publisher_id"><option value="">(unassigned)</option>@foreach($publishers as $u)<option value="{{ $u->id }}" @selected($document->publisher_id===$u->id)>{{ $u->name ?: $u->username }}</option>@endforeach</select>
           </div>
         </div>
         <div class="row">

@@ -11,6 +11,7 @@ use App\Models\Qms\AuditTrail;
 use App\Models\Qms\ElectronicSignature;
 use App\Services\Qms\AuditTrailService;
 use App\Services\Qms\SignatureService;
+use App\Services\Qms\UserRoleService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +22,11 @@ use Illuminate\Support\Facades\DB;
  */
 class DocumentController extends Controller
 {
-    public function __construct(private AuditTrailService $audit, private SignatureService $signatures) {}
+    public function __construct(
+        private AuditTrailService $audit,
+        private SignatureService $signatures,
+        private UserRoleService $roles,
+    ) {}
 
     /**
      * Transitions that require an electronic signature (per the client's
@@ -38,12 +43,15 @@ class DocumentController extends Controller
         return $r->session()->get('flink_user');
     }
 
-    /** Reference data (read from the legacy FlinkISO tables) for the form dropdowns. */
+    /** Reference data (standards + role-filtered user pickers) for the form dropdowns. */
     private function refData(): array
     {
         return [
             'standards' => DB::connection('flinkiso')->table('standards')->where('soft_delete', 0)->orderBy('name')->get(['id', 'name']),
-            'users' => DB::connection('flinkiso')->table('users')->where('soft_delete', 0)->orderBy('name')->get(['id', 'name', 'username']),
+            'users' => $this->roles->legacyUsers(),
+            'reviewers' => $this->roles->usersWithRole('reviewer'),
+            'approvers' => $this->roles->usersWithRole('approver'),
+            'publishers' => $this->roles->usersWithRole('publisher'),
         ];
     }
 
@@ -55,6 +63,7 @@ class DocumentController extends Controller
         'review_due_date' => 'nullable|date',
         'reviewer_id' => 'nullable|string|max:36',
         'approver_id' => 'nullable|string|max:36',
+        'publisher_id' => 'nullable|string|max:36',
         'related_standard_id' => 'nullable|string|max:36',
         'related_clause_id' => 'nullable|string|max:36',
         'related_process' => 'nullable|string|max:255',
@@ -107,7 +116,15 @@ class DocumentController extends Controller
             ->findOrFail($id);
         $audit = AuditTrail::where('entity_type', 'qms_document')->where('entity_id', $id)->orderByDesc('seq')->get();
         $signatures = ElectronicSignature::where('entity_id', $id)->orderByDesc('signed_at')->get();
-        return view('documents.show', ['document' => $document, 'audit' => $audit, 'signatures' => $signatures] + $this->refData());
+        $u = $this->user($request);
+        $myRoles = [
+            'creator' => $this->roles->has($u['id'], 'creator'),
+            'reviewer' => $this->roles->has($u['id'], 'reviewer'),
+            'approver' => $this->roles->has($u['id'], 'approver'),
+            'publisher' => $this->roles->has($u['id'], 'publisher'),
+            'owner' => $document->owner_id === $u['id'],
+        ];
+        return view('documents.show', ['document' => $document, 'audit' => $audit, 'signatures' => $signatures, 'myRoles' => $myRoles] + $this->refData());
     }
 
     public function transition(Request $request, string $id)
@@ -123,6 +140,23 @@ class DocumentController extends Controller
         }
 
         $u = $this->user($request);
+
+        // Role-based routing (Creator → Reviewer → Approver → Publisher).
+        if ($data['to'] === 'review' && !$doc->reviewer_id) {
+            return back()->withErrors(['to' => 'Assign a Reviewer before submitting the document for review.']);
+        }
+        if ($data['to'] === 'approved') {
+            if (!$doc->reviewed_at) {
+                return back()->withErrors(['to' => 'The assigned Reviewer must complete their review before the document can be approved.']);
+            }
+            if (!$this->roles->has($u['id'], 'approver')) {
+                return back()->withErrors(['to' => 'Only a user with the Approver role can approve. Assign roles under Users & Roles.']);
+            }
+        }
+        if ($data['to'] === 'released' && !$this->roles->has($u['id'], 'publisher')) {
+            return back()->withErrors(['to' => 'Only a user with the Publisher role can release/publish. Assign roles under Users & Roles.']);
+        }
+
         $meaning = self::SIGNING_MEANINGS[$data['to']] ?? null;
 
         // A signing transition requires authentication at the moment of signing (Part 11).
@@ -153,6 +187,25 @@ class DocumentController extends Controller
         }
 
         return back()->with('ok', "Document moved to {$doc->status}." . ($meaning ? " Electronically signed as '{$meaning}' by {$u['username']}." : ''));
+    }
+
+    /** Reviewer completes their review (recorded + audited; no e-signature required). */
+    public function reviewSignoff(Request $request, string $id)
+    {
+        $doc = Document::findOrFail($id);
+        if ($doc->status !== 'review') {
+            return back()->withErrors(['to' => 'Only a document that is under review can be signed off by the Reviewer.']);
+        }
+        $u = $this->user($request);
+        if (!$this->roles->has($u['id'], 'reviewer')) {
+            return back()->withErrors(['to' => 'Only a user with the Reviewer role can complete the review. Assign roles under Users & Roles.']);
+        }
+        $doc->reviewed_by = $u['id'];
+        $doc->reviewed_at = now();
+        $doc->save();
+        $this->log($doc, 'review', $u, ['reviewed_by' => $u['username']]);
+
+        return back()->with('ok', 'Review completed. The document can now be approved by an Approver.');
     }
 
     public function newVersion(Request $request, string $id)
