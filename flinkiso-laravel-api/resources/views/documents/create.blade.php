@@ -15,7 +15,7 @@
           <div class="row">
             <div class="col-sm-4 form-group">
               <label>Document number *</label>
-              <input class="form-control" name="doc_number" value="{{ old('doc_number') }}" placeholder="SOP 001">
+              <input class="form-control" name="doc_number" value="{{ old('doc_number') }}" placeholder="SOP 001" required>
             </div>
             <div class="col-sm-3 form-group">
               <label>Category *</label>
@@ -34,7 +34,7 @@
           </div>
           <div class="form-group">
             <label>Title *</label>
-            <input class="form-control" name="title" value="{{ old('title') }}" placeholder="Cleaning and Sanitation SOP">
+            <input class="form-control" name="title" value="{{ old('title') }}" placeholder="Cleaning and Sanitation SOP" required>
           </div>
           <div class="row">
             <div class="col-sm-4 form-group">
