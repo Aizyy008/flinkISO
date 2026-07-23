@@ -58,15 +58,25 @@
               <label>Reviewer</label>
               <select class="form-control" name="reviewer_id">
                 <option value="">(unassigned)</option>
-                @foreach($users as $u)<option value="{{ $u->id }}">{{ $u->name ?: $u->username }}</option>@endforeach
+                @foreach($reviewers as $u)<option value="{{ $u->id }}">{{ $u->name ?: $u->username }}</option>@endforeach
               </select>
+              @if($reviewers->isEmpty())<small class="text-muted">No users have the Reviewer role — assign one under <a href="/users">Users &amp; Roles</a>.</small>@endif
             </div>
             <div class="col-sm-4 form-group">
               <label>Approver</label>
               <select class="form-control" name="approver_id">
                 <option value="">(unassigned)</option>
-                @foreach($users as $u)<option value="{{ $u->id }}">{{ $u->name ?: $u->username }}</option>@endforeach
+                @foreach($approvers as $u)<option value="{{ $u->id }}">{{ $u->name ?: $u->username }}</option>@endforeach
               </select>
+              @if($approvers->isEmpty())<small class="text-muted">No users have the Approver role — assign one under <a href="/users">Users &amp; Roles</a>.</small>@endif
+            </div>
+            <div class="col-sm-4 form-group">
+              <label>Publisher</label>
+              <select class="form-control" name="publisher_id">
+                <option value="">(unassigned)</option>
+                @foreach($publishers as $u)<option value="{{ $u->id }}">{{ $u->name ?: $u->username }}</option>@endforeach
+              </select>
+              @if($publishers->isEmpty())<small class="text-muted">No users have the Publisher role — assign one under <a href="/users">Users &amp; Roles</a>.</small>@endif
             </div>
           </div>
           <div class="row">
