@@ -169,13 +169,22 @@ class DocumentController extends Controller
         $from = $doc->status;
         $doc->status = $data['to'];
 
-        // On release: the current version takes effect; stamp the effective date and a review date if unset.
+        // On release: the current version takes effect and supersedes the previously
+        // released version (which stayed active until now); stamp the effective date.
         if ($data['to'] === 'released') {
             $doc->effective_date = now()->toDateString();
             if (!$doc->review_due_date) {
                 $doc->review_due_date = now()->addYear()->toDateString();
             }
+            DocumentVersion::where('document_id', $doc->id)->where('version', '!=', $doc->current_version)
+                ->where('status', 'released')->update(['status' => 'superseded']);
             DocumentVersion::where('document_id', $doc->id)->where('version', $doc->current_version)->update(['status' => 'released']);
+        }
+
+        // Sending a document back to draft invalidates its review — it must be redone.
+        if ($data['to'] === 'draft') {
+            $doc->reviewed_by = null;
+            $doc->reviewed_at = null;
         }
         $doc->save();
 
@@ -212,10 +221,19 @@ class DocumentController extends Controller
     {
         $data = $request->validate(['change_summary' => 'required|string']);
         $doc = Document::findOrFail($id);
+        if (!$this->canEdit($doc, $this->user($request))) {
+            return back()->withErrors(['change_summary' => 'Only the document owner or a Creator can create a new version.']);
+        }
         $this->bumpVersion($doc, $data['change_summary'], $this->user($request)['id']);
         $this->log($doc, 'new_version', $this->user($request), ['version' => ['new' => $doc->current_version], 'revision' => $doc->revision_number]);
 
         return back()->with('ok', "New version v{$doc->current_version} (Rev {$doc->revision_number}) created, back to draft.");
+    }
+
+    /** Only the document owner or a user with the Creator role may edit/version a document. */
+    private function canEdit(Document $doc, array $u): bool
+    {
+        return $doc->owner_id === $u['id'] || $this->roles->has($u['id'], 'creator');
     }
 
     /** Edit document metadata. Logged as an 'edit' audit event. */
@@ -223,6 +241,9 @@ class DocumentController extends Controller
     {
         $data = $request->validate(self::RULES);
         $doc = Document::findOrFail($id);
+        if (!$this->canEdit($doc, $this->user($request))) {
+            return back()->withErrors(['title' => 'Only the document owner or a Creator can edit document details.']);
+        }
         if (in_array($doc->status, ['released', 'obsolete'], true)) {
             return back()->withErrors(['title' => 'Released or obsolete documents cannot be edited. Raise a change request and create a new version.']);
         }
@@ -238,6 +259,9 @@ class DocumentController extends Controller
     {
         $data = $request->validate(['reason' => 'required|string']);
         $doc = Document::findOrFail($id);
+        if (!$this->canEdit($doc, $this->user($request))) {
+            return back()->withErrors(['reason' => 'Only the document owner or a Creator can raise a change request.']);
+        }
         $year = date('Y');
         $count = ChangeRequest::where('reference', 'like', "CR $year %")->count() + 1;
         $cr = ChangeRequest::create([
@@ -264,6 +288,9 @@ class DocumentController extends Controller
             return back()->withErrors(['decision' => 'This change request has already been decided.']);
         }
         $u = $this->user($request);
+        if (!$this->roles->has($u['id'], 'approver')) {
+            return back()->withErrors(['decision' => 'Only a user with the Approver role can approve or reject a change request.']);
+        }
 
         // Approving a change request is a signing act — authenticate the signer.
         if ($data['decision'] === 'approved' && !$this->signatures->verify($u['id'], $data['password'] ?? null)) {
@@ -290,6 +317,9 @@ class DocumentController extends Controller
         $changeRequest = ChangeRequest::where('document_id', $id)->where('id', $cr)->firstOrFail();
         if ($changeRequest->status !== 'approved') {
             return back()->withErrors(['implement' => 'Only an approved change request can be implemented.']);
+        }
+        if (!$this->canEdit($doc, $this->user($request))) {
+            return back()->withErrors(['implement' => 'Only the document owner or a Creator can implement a change request.']);
         }
         $this->bumpVersion($doc, 'Change request ' . $changeRequest->reference . ': ' . $changeRequest->reason, $this->user($request)['id']);
         $changeRequest->update(['status' => 'implemented']);
@@ -346,12 +376,20 @@ class DocumentController extends Controller
     /** Supersede the current version, create a new draft version, bump revision number. */
     private function bumpVersion(Document $doc, string $summary, ?string $userId): void
     {
-        DocumentVersion::where('document_id', $doc->id)->where('version', $doc->current_version)->update(['status' => 'superseded']);
+        // Supersede the current version only if it is NOT the active released one.
+        // The previously released version stays 'released' (active) until the new
+        // version is itself approved and released.
+        DocumentVersion::where('document_id', $doc->id)->where('version', $doc->current_version)
+            ->where('status', '!=', 'released')->update(['status' => 'superseded']);
         $v = $doc->current_version + 1;
         $doc->update([
             'current_version' => $v,
             'revision_number' => ($doc->revision_number ?? 0) + 1,
             'status' => 'draft',
+            // Each version has its own independent review cycle — clear the prior
+            // reviewer sign-off so the new version must be reviewed again.
+            'reviewed_by' => null,
+            'reviewed_at' => null,
         ]);
         DocumentVersion::create([
             'document_id' => $doc->id, 'version' => $v, 'change_summary' => $summary,

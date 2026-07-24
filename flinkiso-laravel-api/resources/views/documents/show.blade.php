@@ -7,6 +7,8 @@
 @php
   $allowed = \App\Models\Qms\Document::TRANSITIONS[$document->status] ?? [];
   $editable = !in_array($document->status, ['released','obsolete'], true);
+  // Editing / versioning / raising change requests belong to the owner or a Creator.
+  $canEditDoc = ($myRoles['creator'] ?? false) || ($myRoles['owner'] ?? false);
   $uName = fn($id) => optional($users->firstWhere('id', $id))->name ?: optional($users->firstWhere('id', $id))->username;
   $stdName = optional($standards->firstWhere('id', $document->related_standard_id))->name;
 @endphp
@@ -75,10 +77,10 @@
             @endif
           @endforeach
           @php $noActions = ($document->status !== 'review' || $document->reviewed_at || !$myRoles['reviewer']) && collect($allowed)->every(fn($t) => empty($canDo[$t])); @endphp
-          @if($noActions && !$editable)
+          @if($noActions && !($editable && $canEditDoc))
             <span class="text-muted"><i class="fa fa-info-circle"></i> No actions available for your role at this stage.</span>
           @endif
-          @if($editable)
+          @if($editable && $canEditDoc)
             <button class="btn btn-sm btn-default" data-toggle="collapse" data-target="#editBox"><i class="fa fa-pencil"></i> Edit details</button>
           @endif
         </div>
@@ -107,6 +109,7 @@
     </div>
   </div>
   <div class="col-md-6">
+    @if($canEditDoc)
     <div class="box box-default">
       <div class="box-header with-border"><h3 class="box-title">New version</h3></div>
       <form method="post" action="/documents/{{ $document->id }}/version">
@@ -126,10 +129,13 @@
         <div class="box-footer"><button class="btn btn-default"><i class="fa fa-refresh"></i> Raise change request</button></div>
       </form>
     </div>
+    @else
+    <div class="box box-default"><div class="box-body text-muted">New versions and change requests are managed by the document owner / Creator.</div></div>
+    @endif
   </div>
 </div>
 
-@if($editable)
+@if($editable && $canEditDoc)
 <div class="collapse" id="editBox">
   <div class="box box-warning">
     <div class="box-header with-border"><h3 class="box-title">Edit document details</h3></div>
@@ -206,17 +212,19 @@
         <td>{{ $cr->reason }}</td>
         <td>@include('documents.status', ['status' => $cr->status])</td>
         <td class="text-right">
-          @if($cr->status === 'open')
+          @if($cr->status === 'open' && $myRoles['approver'])
             <button type="button" class="btn btn-xs btn-success js-sign"
               data-url="/documents/{{ $document->id }}/change-request/{{ $cr->id }}/decide" data-field="decision" data-value="approved"
               data-meaning="Approved" data-label="Approve change request {{ $cr->reference }}">Approve (e-sign)</button>
             <form method="post" action="/documents/{{ $document->id }}/change-request/{{ $cr->id }}/decide" style="display:inline;">
               @csrf<input type="hidden" name="decision" value="rejected"><button class="btn btn-xs btn-danger">Reject</button>
             </form>
-          @elseif($cr->status === 'approved')
+          @elseif($cr->status === 'approved' && $canEditDoc)
             <form method="post" action="/documents/{{ $document->id }}/change-request/{{ $cr->id }}/implement" style="display:inline;">
               @csrf<button class="btn btn-xs btn-primary">Implement (new version)</button>
             </form>
+          @else
+            <span class="text-muted small">—</span>
           @endif
         </td>
       </tr>
