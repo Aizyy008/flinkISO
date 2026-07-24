@@ -31,17 +31,19 @@ class TestWorkflowUsersSeeder extends Seeder
             return;
         }
 
+        // Each test account holds exactly ONE role so role isolation is clearly
+        // testable (an Approver is not also a Creator, etc.).
         $accounts = [
             ['username' => 'qms.creator',   'name' => 'QMS Creator (test)',   'flags' => ['is_creator' => 1]],
-            ['username' => 'qms.reviewer',  'name' => 'QMS Reviewer (test)',  'flags' => ['is_creator' => 1, 'is_mr' => 1]],
-            ['username' => 'qms.approver',  'name' => 'QMS Approver (test)',  'flags' => ['is_creator' => 1, 'is_approver' => 1]],
-            ['username' => 'qms.publisher', 'name' => 'QMS Publisher (test)', 'flags' => ['is_creator' => 1, 'is_publisher' => 1]],
+            ['username' => 'qms.reviewer',  'name' => 'QMS Reviewer (test)',  'flags' => ['is_mr' => 1]],
+            ['username' => 'qms.approver',  'name' => 'QMS Approver (test)',  'flags' => ['is_approver' => 1]],
+            ['username' => 'qms.publisher', 'name' => 'QMS Publisher (test)', 'flags' => ['is_publisher' => 1]],
         ];
         $roleMap = [
             'qms.creator'   => ['creator' => true],
-            'qms.reviewer'  => ['creator' => true, 'reviewer' => true],
-            'qms.approver'  => ['creator' => true, 'approver' => true],
-            'qms.publisher' => ['creator' => true, 'publisher' => true],
+            'qms.reviewer'  => ['reviewer' => true],
+            'qms.approver'  => ['approver' => true],
+            'qms.publisher' => ['publisher' => true],
         ];
 
         $roleService = app(UserRoleService::class);
