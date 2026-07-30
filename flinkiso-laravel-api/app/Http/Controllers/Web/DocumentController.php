@@ -186,6 +186,14 @@ class DocumentController extends Controller
             $doc->reviewed_by = null;
             $doc->reviewed_at = null;
         }
+
+        // Keep the current version's history row in step with the document status
+        // (Review / Approved / Draft / Obsolete). 'released' is handled above with
+        // its supersede logic, so the version no longer sits on "Draft" mid-lifecycle.
+        if ($data['to'] !== 'released') {
+            DocumentVersion::where('document_id', $doc->id)->where('version', $doc->current_version)
+                ->update(['status' => $data['to']]);
+        }
         $doc->save();
 
         $auditRow = $this->log($doc, 'status_change', $u, ['status' => ['old' => $from, 'new' => $doc->status]], $data['reason'] ?? null, $meaning);
