@@ -23,7 +23,11 @@ use Illuminate\Http\Request;
  */
 class HaccpController extends Controller
 {
-    public function __construct(private AuditTrailService $audit, private Notifier $notifier) {}
+    public function __construct(
+        private AuditTrailService $audit,
+        private Notifier $notifier,
+        private \App\Services\Qms\SignatureService $signatures,
+    ) {}
 
     private function user(Request $r): array { return $r->session()->get('flink_user'); }
 
@@ -71,21 +75,35 @@ class HaccpController extends Controller
 
     public function transition(Request $request, string $id)
     {
-        $data = $request->validate(['to' => 'required|in:draft,approved,active,obsolete']);
+        $data = $request->validate([
+            'to' => 'required|in:draft,approved,active,obsolete',
+            'password' => 'nullable|string',
+        ]);
         $plan = HaccpPlan::findOrFail($id);
+        $u = $this->user($request);
+        $meaning = $data['to'] === 'approved' ? 'approved' : null;
+
+        // Approving a HACCP plan is a signing act — authenticate the signer (Part 11).
+        if ($meaning && !$this->signatures->verify($u['id'], $data['password'] ?? null)) {
+            return back()->withErrors(['password' => 'Your password is required and must be correct to sign the HACCP plan approval.'])->withInput();
+        }
+
         $from = $plan->status;
         $plan->status = $data['to'];
         if ($data['to'] === 'approved') {
-            $plan->approved_by = $this->user($request)['id'];
+            $plan->approved_by = $u['id'];
             $plan->approved_date = now()->toDateString();
         }
         $plan->save();
-        $this->audit->record('qms_haccp_plan', $plan->id, 'status_change', [
-            'user_id' => $this->user($request)['id'], 'username' => $this->user($request)['username'],
+        $auditRow = $this->audit->record('qms_haccp_plan', $plan->id, 'status_change', [
+            'user_id' => $u['id'], 'username' => $u['username'],
             'changes' => ['status' => ['old' => $from, 'new' => $plan->status]],
-            'signature_meaning' => $data['to'] === 'approved' ? 'approved' : null,
+            'signature_meaning' => $meaning,
         ]);
-        return back()->with('ok', "Plan moved to {$plan->status}.");
+        if ($meaning) {
+            $this->signatures->sign($plan->id, null, 'approve', $meaning, 'HACCP plan approval', $u, $auditRow?->seq, $request->ip(), 'qms_haccp_plan');
+        }
+        return back()->with('ok', "Plan moved to {$plan->status}." . ($meaning ? " Electronically signed by {$u['username']}." : ''));
     }
 
     // ---------- Building blocks ----------

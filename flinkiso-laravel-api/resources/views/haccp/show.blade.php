@@ -16,8 +16,11 @@
     </p>
     @if($plan->description)<p>{{ $plan->description }}</p>@endif
     @if($allowed[$plan->status] ?? false)
-    <form method="post" action="/haccp/{{ $plan->id }}/transition" style="display:inline;">
+    <form method="post" action="/haccp/{{ $plan->id }}/transition" class="form-inline" style="display:inline;">
       @csrf<input type="hidden" name="to" value="{{ $allowed[$plan->status] }}">
+      @if($allowed[$plan->status]==='approved')
+        <input type="password" class="form-control input-sm" name="password" autocomplete="off" placeholder="Confirm your password to sign" required style="width:230px;">
+      @endif
       <button class="btn btn-sm btn-success">Move to {{ ucfirst($allowed[$plan->status]) }}@if($allowed[$plan->status]==='approved') (e-sign)@endif</button>
     </form>
     @endif
