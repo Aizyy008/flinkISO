@@ -2,17 +2,22 @@
 Core AI/analytics engine for the FlinkISO QMS AI microservice (Milestone 2.2).
 
 Every function derives its output from the caller's inputs — no canned/mock
-text. CAPA suggestions use OpenAI when a key is configured, and otherwise a
-deterministic, input-driven rule engine so the endpoint is never "mock".
+text. CAPA suggestions use a configurable LLM provider (OpenAI / Azure OpenAI /
+Anthropic / Gemini / Ollama — selected by AI_PROVIDER, see ``providers.py``);
+when no provider is configured the engine uses a deterministic, input-driven
+rule engine so the endpoint is never "mock".
 """
 from __future__ import annotations
 
+import json
 import os
 import re
 import statistics
 from typing import Optional
 
 import httpx
+
+from .providers import get_provider
 
 
 # --------------------------------------------------------------------------- #
@@ -165,13 +170,13 @@ _CAUSE_HINTS = {
 def capa_suggest(title: str, description: str = "", type_: str = "non_conformity",
                  severity: str = "medium") -> dict:
     text = f"{title}. {description}".strip()
-    key = os.getenv("OPENAI_API_KEY", "").strip()
-    if key:
+    provider = get_provider()
+    if provider.available():
         try:
-            return _capa_via_openai(text, type_, severity, key)
+            return _capa_via_llm(text, type_, severity, provider)
         except Exception as exc:  # noqa: BLE001 — fall back, never fail the endpoint
             fallback = _capa_rule_based(text, type_, severity)
-            fallback["engine"] = f"rule_based (openai_error: {type(exc).__name__})"
+            fallback["engine"] = f"rule_based ({provider.name}_error: {type(exc).__name__})"
             return fallback
     return _capa_rule_based(text, type_, severity)
 
@@ -201,28 +206,15 @@ def _capa_rule_based(text: str, type_: str, severity: str) -> dict:
     }
 
 
-def _capa_via_openai(text: str, type_: str, severity: str, key: str) -> dict:
-    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-    prompt = (
+def _capa_via_llm(text: str, type_: str, severity: str, provider) -> dict:
+    """Ask the configured LLM provider (any vendor) for a CAPA suggestion."""
+    system = (
         "You are a quality management (ISO 9001/22000) CAPA assistant. "
-        f"For this {type_} (severity: {severity}):\n\"{text}\"\n"
         "Return STRICT JSON with keys root_cause_hypotheses (array of strings), "
         "corrective_actions (array), preventive_actions (array). No prose."
     )
-    resp = httpx.post(
-        "https://api.openai.com/v1/chat/completions",
-        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-        json={
-            "model": model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.2,
-            "response_format": {"type": "json_object"},
-        },
-        timeout=30,
-    )
-    resp.raise_for_status()
-    import json
-    content = resp.json()["choices"][0]["message"]["content"]
+    user = f'For this {type_} (severity: {severity}):\n"{text}"'
+    content = provider.complete_json(system, user)
     data = json.loads(content)
-    data["engine"] = f"openai:{model}"
+    data["engine"] = provider.label()
     return data

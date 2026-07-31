@@ -66,8 +66,9 @@ class HaccpIn(BaseModel):
 # ----- routes ----- #
 @app.get("/health")
 def health() -> dict:
+    provider = engine.get_provider()
     return {"ok": True, "service": "flinkiso-ai", "version": app.version,
-            "openai": bool(os.getenv("OPENAI_API_KEY"))}
+            "ai_provider": provider.name, "llm_available": provider.available()}
 
 
 @app.post("/ai/risk-score", dependencies=[Depends(require_token)])
