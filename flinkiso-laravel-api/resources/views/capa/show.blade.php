@@ -64,8 +64,10 @@
       <div class="form-group"><label>Effectiveness notes *</label><textarea class="form-control" name="effectiveness_notes" rows="2" placeholder="How was effectiveness confirmed?">{{ $capa->effectiveness_notes }}</textarea></div>
       <div class="row">
         <div class="col-sm-4 form-group"><label>Result</label><select class="form-control" name="verified"><option value="1">Effective (verify)</option><option value="0">Not effective</option></select></div>
-        <div class="col-sm-6 form-group"><label>Reason (for the signature)</label><input class="form-control" name="reason" placeholder="e.g. re-checked after 30 days"></div>
+        <div class="col-sm-4 form-group"><label>Reason (for the signature)</label><input class="form-control" name="reason" placeholder="e.g. re-checked after 30 days"></div>
+        <div class="col-sm-4 form-group"><label>Confirm your password *</label><input type="password" class="form-control" name="password" autocomplete="off" placeholder="Your FlinkISO password" required></div>
       </div>
+      <p class="text-muted qms-sign">Signed as <strong>{{ session('flink_user')['username'] }}</strong>; recorded in the electronic signatures table and the immutable audit trail (21 CFR Part 11).</p>
     </div>
     <div class="box-footer"><button class="btn btn-warning"><i class="fa fa-pencil-square-o"></i> Record effectiveness check (e-sign)</button></div>
   </form>

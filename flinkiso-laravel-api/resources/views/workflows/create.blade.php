@@ -39,6 +39,18 @@
             <div class="col-sm-6 form-group"><input class="form-control" name="notify_title" placeholder="Notification title"></div>
             <div class="col-sm-6"><div class="checkbox"><label><input type="checkbox" name="notify_email" value="1"> also send email</label></div></div>
           </div>
+
+          <div class="checkbox"><label><input type="checkbox" name="action_assign_task" value="1"> Assign a task</label></div>
+          <div class="row" style="margin-left:10px;">
+            <div class="col-sm-6 form-group"><input class="form-control" name="task_title" placeholder="Task title"></div>
+            <div class="col-sm-6 form-group"><select class="form-control" name="task_user_id"><option value="">Assign to (default: record owner)</option>@foreach($users as $u)<option value="{{ $u->id }}">{{ $u->name ?: $u->username }}</option>@endforeach</select></div>
+          </div>
+
+          <div class="checkbox"><label><input type="checkbox" name="action_request_approval" value="1"> Request an approval</label></div>
+          <div class="row" style="margin-left:10px;">
+            <div class="col-sm-6 form-group"><input class="form-control" name="approval_title" placeholder="Approval request title"></div>
+            <div class="col-sm-6 form-group"><select class="form-control" name="approver_id"><option value="">Approver (default: record owner)</option>@foreach($users as $u)<option value="{{ $u->id }}">{{ $u->name ?: $u->username }}</option>@endforeach</select></div>
+          </div>
         </div>
         <div class="box-footer">
           <button class="btn btn-primary"><i class="fa fa-check"></i> Create rule</button>
