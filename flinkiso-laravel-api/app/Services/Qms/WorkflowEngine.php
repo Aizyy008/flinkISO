@@ -103,10 +103,16 @@ class WorkflowEngine
                 ]);
                 $this->audit->record('qms_capa', $capa->id, 'create', [
                     'reason' => 'auto-created by workflow',
+                    'changes' => ['new' => $capa->only(['reference', 'title', 'type', 'status'])],
                 ]);
-                // Move the originating incident to capa_raised.
-                if ($incidentId && ($inc = \App\Models\Qms\Incident::find($incidentId)) && $inc->status === 'open') {
+                // Move the originating incident (open or investigating) to capa_raised.
+                if ($incidentId && ($inc = \App\Models\Qms\Incident::find($incidentId)) && in_array($inc->status, ['open', 'investigating'], true)) {
+                    $from = $inc->status;
                     $inc->update(['status' => 'capa_raised']);
+                    $this->audit->record('qms_incident', $inc->id, 'status_change', [
+                        'reason' => "Auto CAPA {$capa->reference} raised by workflow",
+                        'changes' => ['status' => ['old' => $from, 'new' => 'capa_raised']],
+                    ]);
                 }
                 return ['type' => 'create_capa', 'ok' => true, 'capa_id' => $capa->id];
 

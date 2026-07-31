@@ -27,10 +27,14 @@ class SignatureService
      *
      * @param array{id:string,username:string,name?:string} $user
      */
-    public function sign(string $entityId, ?int $version, string $action, string $meaning, ?string $reason, array $user, ?int $auditSeq = null, ?string $ip = null): ElectronicSignature
+    public function sign(string $entityId, ?int $version, string $action, string $meaning, ?string $reason, array $user, ?int $auditSeq = null, ?string $ip = null, string $entityType = 'qms_document'): ElectronicSignature
     {
+        $ref = $version !== null
+            ? "{$entityType}:{$entityId}:v{$version}:{$action}"
+            : "{$entityType}:{$entityId}:{$action}";
+
         return ElectronicSignature::create([
-            'entity_type' => 'qms_document',
+            'entity_type' => $entityType,
             'entity_id' => $entityId,
             'document_version' => $version,
             'action' => $action,
@@ -39,7 +43,7 @@ class SignatureService
             'signer_id' => $user['id'],
             'signer_name' => $user['name'] ?? $user['username'],
             'signer_username' => $user['username'],
-            'record_reference' => "qms_document:{$entityId}:v{$version}:{$action}",
+            'record_reference' => $ref,
             'audit_seq' => $auditSeq,
             'ip_address' => $ip,
             'signed_at' => now(),

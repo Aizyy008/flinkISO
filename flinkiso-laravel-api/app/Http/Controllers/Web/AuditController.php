@@ -141,12 +141,17 @@ class AuditController extends Controller
             'question' => 'required|string',
         ]);
         $audit = Audit::findOrFail($id);
-        $audit->checklistItems()->create([
-            'section' => $data['section'] ?: 'General',
+        $item = $audit->checklistItems()->create([
+            'section' => ($data['section'] ?? null) ?: 'General',
             'clause_ref' => $data['clause_ref'] ?? null,
             'question' => $data['question'],
             'sort_order' => (int) $audit->checklistItems()->max('sort_order') + 1,
             'created_by' => $this->user($request)['id'],
+        ]);
+        $u = $this->user($request);
+        $this->audit->record('qms_audit', $audit->id, 'checklist_item_added', [
+            'user_id' => $u['id'], 'username' => $u['username'],
+            'changes' => ['question' => $item->question, 'section' => $item->section],
         ]);
         return back()->with('ok', 'Checklist item added.');
     }
@@ -159,7 +164,13 @@ class AuditController extends Controller
             'notes' => 'nullable|string',
         ]);
         $item = AuditChecklistItem::where('audit_id', $id)->where('id', $itemId)->firstOrFail();
+        $old = $item->response;
         $item->update($data);
+        $u = $this->user($request);
+        $this->audit->record('qms_audit', $id, 'checklist_response', [
+            'user_id' => $u['id'], 'username' => $u['username'],
+            'changes' => ['question' => $item->question, 'response' => ['old' => $old, 'new' => $item->response]],
+        ]);
         return back()->with('ok', 'Response recorded.');
     }
 

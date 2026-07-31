@@ -9,12 +9,17 @@ use App\Models\Qms\Evidence;
 use App\Models\Qms\Incident;
 use App\Services\Qms\AuditTrailService;
 use App\Services\Qms\Notifier;
+use App\Services\Qms\SignatureService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class CapaController extends Controller
 {
-    public function __construct(private AuditTrailService $audit, private Notifier $notifier) {}
+    public function __construct(
+        private AuditTrailService $audit,
+        private Notifier $notifier,
+        private SignatureService $signatures,
+    ) {}
 
     private function user(Request $r): array { return $r->session()->get('flink_user'); }
 
@@ -63,9 +68,18 @@ class CapaController extends Controller
             'changes' => ['new' => $capa->only(['reference', 'title', 'type']), 'incident_id' => $capa->incident_id],
         ]);
 
-        // Keep the originating incident in sync.
+        // Keep the originating incident in sync: any incident still being worked
+        // (open or investigating) moves to "CAPA raised" when a CAPA is raised.
         if ($capa->incident_id && ($inc = Incident::find($capa->incident_id))) {
-            if ($inc->status === 'open') { $inc->update(['status' => 'capa_raised']); }
+            if (in_array($inc->status, ['open', 'investigating'], true)) {
+                $from = $inc->status;
+                $inc->update(['status' => 'capa_raised']);
+                $this->audit->record('qms_incident', $inc->id, 'status_change', [
+                    'user_id' => $u['id'], 'username' => $u['username'],
+                    'reason' => "CAPA {$capa->reference} raised",
+                    'changes' => ['status' => ['old' => $from, 'new' => 'capa_raised']],
+                ]);
+            }
         }
 
         if ($capa->assigned_to) { $this->notifyOwner($capa); }
@@ -125,25 +139,40 @@ class CapaController extends Controller
         return back()->with('ok', "CAPA moved to " . str_replace('_', ' ', $capa->status) . '.');
     }
 
-    /** Effectiveness check with an electronic signature. */
+    /** Effectiveness check — a real 21 CFR Part 11 electronic signature (password re-auth). */
     public function verify(Request $request, string $id)
     {
-        $data = $request->validate(['effectiveness_notes' => 'required|string', 'verified' => 'required|boolean', 'reason' => 'nullable|string|max:255']);
+        $data = $request->validate([
+            'effectiveness_notes' => 'required|string',
+            'verified' => 'required|boolean',
+            'reason' => 'nullable|string|max:255',
+            'password' => 'required|string',
+        ]);
         $capa = Capa::findOrFail($id);
         $u = $this->user($request);
+
+        // Authenticate the signer at the moment of signing (Part 11).
+        if (!$this->signatures->verify($u['id'], $data['password'])) {
+            return back()->withErrors(['password' => 'Your password is required and must be correct to sign the effectiveness check.'])->withInput();
+        }
+
         $capa->update([
             'effectiveness_notes' => $data['effectiveness_notes'],
             'effectiveness_verified' => (bool) $data['verified'],
             'verified_by' => $u['id'],
             'status' => 'effectiveness_check',
         ]);
-        $this->audit->record('qms_capa', $capa->id, 'sign', [
+        $meaning = $data['verified'] ? 'verified' : 'rejected';
+        $auditRow = $this->audit->record('qms_capa', $capa->id, 'effectiveness_check', [
             'user_id' => $u['id'], 'username' => $u['username'],
             'reason' => $data['reason'] ?? 'effectiveness check',
-            'signature_meaning' => $data['verified'] ? 'verified' : 'rejected',
+            'signature_meaning' => $meaning,
             'changes' => ['effectiveness_verified' => (bool) $data['verified']],
         ]);
-        return back()->with('ok', 'Effectiveness check recorded (electronically signed). You can now close the CAPA.');
+        // Record the electronic signature bound to this action (electronic_signatures table).
+        $this->signatures->sign($capa->id, null, 'effectiveness_check', $meaning, $data['reason'] ?? 'effectiveness check', $u, $auditRow?->seq, $request->ip(), 'qms_capa');
+
+        return back()->with('ok', 'Effectiveness check electronically signed by ' . $u['username'] . '. You can now close the CAPA.');
     }
 
     private function notifyOwner(Capa $capa): void
