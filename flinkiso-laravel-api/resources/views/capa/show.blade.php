@@ -24,7 +24,9 @@
     <form method="post" action="/capa/{{ $capa->id }}/status" class="form-inline" style="margin-top:8px;">
       @csrf
       <select name="status" class="form-control input-sm">
-        @foreach(['open','in_progress','effectiveness_check','closed','cancelled'] as $s)<option value="{{ $s }}" @selected($capa->status===$s)>{{ ucwords(str_replace('_',' ',$s)) }}</option>@endforeach
+        @foreach(['open','in_progress','effectiveness_check','closed','cancelled'] as $s)
+          <option value="{{ $s }}" @selected($capa->status===$s) @if($s==='closed' && !$capa->effectiveness_verified) disabled @endif>{{ ucwords(str_replace('_',' ',$s)) }}@if($s==='closed' && !$capa->effectiveness_verified) — verify effectiveness first @endif</option>
+        @endforeach
       </select>
       <input name="reason" class="form-control input-sm" placeholder="reason (optional)" style="width:200px;">
       <button class="btn btn-primary btn-sm">Update status</button>
