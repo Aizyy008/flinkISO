@@ -38,6 +38,7 @@
             <option value="rejected" @selected($v->status==='rejected')>Rejected</option>
             <option value="expired" @selected($v->status==='expired')>Expired</option>
           </select></div>
+          <div class="form-group"><label>Password <small class="text-muted">(required to sign an Approval)</small></label><input type="password" class="form-control" name="password" autocomplete="off" placeholder="Your FlinkISO password"></div>
           <button class="btn btn-primary btn-sm"><i class="fa fa-gavel"></i> Update status</button>
         </form>
       </div>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Qms\Asset;
 use App\Models\Qms\Validation;
 use App\Services\Qms\AuditTrailService;
+use App\Services\Qms\SignatureService;
 use Illuminate\Http\Request;
 
 /**
@@ -14,7 +15,7 @@ use Illuminate\Http\Request;
  */
 class ValidationController extends Controller
 {
-    public function __construct(private AuditTrailService $audit) {}
+    public function __construct(private AuditTrailService $audit, private SignatureService $signatures) {}
 
     private function user(Request $r): array { return $r->session()->get('flink_user'); }
 
@@ -66,17 +67,30 @@ class ValidationController extends Controller
     /** Approve or reject a validation record (GMP sign-off). */
     public function transition(Request $request, string $id)
     {
-        $data = $request->validate(['to' => 'required|in:in_progress,approved,rejected,expired']);
+        $data = $request->validate([
+            'to' => 'required|in:in_progress,approved,rejected,expired',
+            'password' => 'nullable|string',
+        ]);
         $v = Validation::findOrFail($id);
+        $u = $this->user($request);
+        $meaning = $data['to'] === 'approved' ? 'approved' : null;
+
+        // GMP approval is a signing act — authenticate the signer (Part 11).
+        if ($meaning && !$this->signatures->verify($u['id'], $data['password'] ?? null)) {
+            return back()->withErrors(['password' => 'Your password is required and must be correct to sign this validation approval.'])->withInput();
+        }
+
         $from = $v->status;
         $v->update(['status' => $data['to']]);
-        $u = $this->user($request);
-        $this->audit->record('qms_validation', $v->id, 'status_change', [
+        $auditRow = $this->audit->record('qms_validation', $v->id, 'status_change', [
             'user_id' => $u['id'], 'username' => $u['username'],
             'changes' => ['status' => ['old' => $from, 'new' => $v->status]],
-            'signature_meaning' => $data['to'] === 'approved' ? 'approved' : null,
+            'signature_meaning' => $meaning,
         ]);
-        return back()->with('ok', "Validation moved to {$v->status}.");
+        if ($meaning) {
+            $this->signatures->sign($v->id, null, 'approve', $meaning, 'GMP / validation approval', $u, $auditRow?->seq, $request->ip(), 'qms_validation');
+        }
+        return back()->with('ok', "Validation moved to {$v->status}." . ($meaning ? " Electronically signed by {$u['username']}." : ''));
     }
 
     private function nextReference(): string
