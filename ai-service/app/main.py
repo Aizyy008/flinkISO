@@ -10,8 +10,13 @@ from __future__ import annotations
 import os
 from typing import Optional
 
+from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
+
+# Load /opt/flinkiso-ai/.env (or ./.env) so the service picks up its config when
+# run from the project directory, under systemd or directly via uvicorn.
+load_dotenv()
 
 from . import engine
 
