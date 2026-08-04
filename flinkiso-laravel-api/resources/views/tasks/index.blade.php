@@ -29,7 +29,13 @@
         <td class="text-muted small">{{ $t->due_date?->format('d M Y') ?: '—' }}</td>
         <td>
           @if($t->status === 'done')
-            <span class="label label-success">Done</span>
+            @if($t->outcome === 'approved')
+              <span class="label label-success">Approved</span>
+            @elseif($t->outcome === 'rejected')
+              <span class="label label-danger">Rejected</span>
+            @else
+              <span class="label label-success">Done</span>
+            @endif
             <div class="text-muted small">{{ $t->completed_at?->format('d M Y, g:i A') }}</div>
           @else
             <span class="label label-default">Open</span>
@@ -37,10 +43,18 @@
         </td>
         <td class="text-right">
           @if($t->status !== 'done')
-          <form method="post" action="/tasks/{{ $t->id }}/complete" style="display:inline">
-            @csrf
-            <button class="btn btn-xs btn-primary"><i class="fa fa-check"></i> Mark done</button>
-          </form>
+            @if($t->kind === 'approval')
+            <form method="post" action="/tasks/{{ $t->id }}/decide" style="display:inline">
+              @csrf
+              <button name="decision" value="approve" class="btn btn-xs btn-success"><i class="fa fa-check"></i> Approve</button>
+              <button name="decision" value="reject" class="btn btn-xs btn-danger"><i class="fa fa-times"></i> Reject</button>
+            </form>
+            @else
+            <form method="post" action="/tasks/{{ $t->id }}/complete" style="display:inline">
+              @csrf
+              <button class="btn btn-xs btn-primary"><i class="fa fa-check"></i> Mark done</button>
+            </form>
+            @endif
           @endif
         </td>
       </tr>

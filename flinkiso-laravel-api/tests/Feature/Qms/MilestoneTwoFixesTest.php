@@ -3,6 +3,7 @@
 namespace Tests\Feature\Qms;
 
 use App\Http\Controllers\Web\EvidenceController;
+use App\Http\Controllers\Web\TaskController;
 use App\Http\Middleware\RequireQmsAdmin;
 use App\Models\Qms\Capa;
 use App\Models\Qms\Evidence;
@@ -176,6 +177,40 @@ class MilestoneTwoFixesTest extends TestCase
 
         $this->assertTrue(Notification::where('title', 'like', 'Due soon: incident%')->exists());
         $this->assertTrue(Notification::where('title', 'like', 'Due soon: CAPA%')->exists());
+    }
+
+    public function test_approval_task_records_approve_and_reject_outcomes(): void
+    {
+        foreach (['approve' => 'approved', 'reject' => 'rejected'] as $decision => $outcome) {
+            $task = Task::create([
+                'title' => 'Approve NC', 'kind' => 'approval', 'assigned_to' => $this->u['id'],
+                'status' => 'open', 'created_by' => $this->u['id'],
+            ]);
+            $req = Request::create('/x', 'POST', ['decision' => $decision]);
+            $req->setLaravelSession($this->app['session']->driver());
+            $req->session()->put('flink_user', ['id' => $this->u['id'], 'username' => $this->u['username'], 'name' => $this->u['name']]);
+
+            app(TaskController::class)->decide($req, $task->id);
+            $task->refresh();
+            $this->assertSame('done', $task->status);
+            $this->assertSame($outcome, $task->outcome);
+        }
+    }
+
+    public function test_reminders_are_not_duplicated_when_run_twice_same_day(): void
+    {
+        Incident::create([
+            'reference' => 'INC DUP', 'title' => 'Dup', 'type' => 'non_conformity', 'severity' => 'high',
+            'status' => 'open', 'created_by' => $this->u['id'], 'detected_by' => $this->u['id'],
+            'detected_date' => now()->toDateString(), 'assigned_to' => $this->u['id'],
+            'due_date' => now()->addDays(2)->toDateString(),
+        ]);
+
+        $this->artisan('qms:overdue-reminders')->assertSuccessful();
+        $this->artisan('qms:overdue-reminders')->assertSuccessful();   // same day, again
+
+        // Only ONE reminder for this incident despite two runs.
+        $this->assertSame(1, Notification::where('related_type', 'qms_incident')->where('type', 'overdue')->count());
     }
 
     private function makeIncident(string $status = 'open'): Incident

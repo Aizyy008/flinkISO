@@ -138,6 +138,7 @@ Route::middleware('webauth')->group(function () {
     // My Tasks (real tasks created by workflow assign/approval actions)
     Route::get('/tasks', [\App\Http\Controllers\Web\TaskController::class, 'index']);
     Route::post('/tasks/{id}/complete', [\App\Http\Controllers\Web\TaskController::class, 'complete']);
+    Route::post('/tasks/{id}/decide', [\App\Http\Controllers\Web\TaskController::class, 'decide']);
 
     // Administrative areas — server-side gated to QMS administrators only.
     Route::middleware('qmsadmin')->group(function () {
