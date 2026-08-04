@@ -38,12 +38,16 @@ class TestWorkflowUsersSeeder extends Seeder
             ['username' => 'qms.reviewer',  'name' => 'QMS Reviewer (test)',  'flags' => ['is_mr' => 1]],
             ['username' => 'qms.approver',  'name' => 'QMS Approver (test)',  'flags' => ['is_approver' => 1]],
             ['username' => 'qms.publisher', 'name' => 'QMS Publisher (test)', 'flags' => ['is_publisher' => 1]],
+            // Administrator: only capability is managing Users & Roles and Workflow
+            // rules — it holds NO document-workflow role, so role isolation stays testable.
+            ['username' => 'qms.admin',     'name' => 'QMS Administrator (test)', 'flags' => []],
         ];
         $roleMap = [
             'qms.creator'   => ['creator' => true],
             'qms.reviewer'  => ['reviewer' => true],
             'qms.approver'  => ['approver' => true],
             'qms.publisher' => ['publisher' => true],
+            'qms.admin'     => ['admin' => true],
         ];
 
         $roleService = app(UserRoleService::class);

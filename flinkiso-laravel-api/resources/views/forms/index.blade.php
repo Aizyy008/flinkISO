@@ -7,7 +7,7 @@
 @section('content')
 <div class="box box-primary">
   <div class="box-header with-border">
-    <h3 class="box-title">Custom forms &amp; submissions</h3>
+    <h3 class="box-title">Custom forms & submissions</h3>
   </div>
   <div class="box-body">
     <p class="text-muted">These are the forms built in the FlinkISO Form Builder. Their submissions are read here (read only) and made available to the QMS.</p>

@@ -1,7 +1,7 @@
 @extends('layout')
 @section('title', 'Workflow rules')
 @section('page_title', 'Workflow rules')
-@section('page_sub', 'triggers, conditions &amp; actions')
+@section('page_sub', 'triggers, conditions & actions')
 @section('menu_workflows', 'active')
 @section('breadcrumb')<li class="active">Workflows</li>@endsection
 @section('content')

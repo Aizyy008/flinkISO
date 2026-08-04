@@ -1,6 +1,6 @@
 @extends('layout')
 @section('title', 'New training')
-@section('page_title', 'Training &amp; Competency')
+@section('page_title', 'Training & Competency')
 @section('page_sub', 'new course')
 @section('menu_training', 'active')
 @section('breadcrumb')<li><a href="/training">Training</a></li><li class="active">New</li>@endsection

@@ -1,7 +1,7 @@
 @extends('layout')
 @section('title', 'CAPA')
 @section('page_title', 'CAPA')
-@section('page_sub', 'corrective &amp; preventive actions')
+@section('page_sub', 'corrective & preventive actions')
 @section('menu_capa', 'active')
 @section('breadcrumb')<li class="active">CAPA</li>@endsection
 @section('content')

@@ -131,7 +131,12 @@
       <input type="hidden" name="redirect" value="/audits/{{ $audit->id }}">
       <div class="col-sm-3 form-group"><select class="form-control" name="evidence_type">@foreach(['file','photo','record','report'] as $t)<option value="{{ $t }}">{{ ucfirst($t) }}</option>@endforeach</select></div>
       <div class="col-sm-3 form-group"><input class="form-control" name="title" placeholder="Title"></div>
-      <div class="col-sm-3 form-group"><input class="form-control" type="file" name="file"></div>
+      <div class="col-sm-3 form-group">
+        <label class="btn btn-default btn-block text-left" style="font-weight:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0;">
+          <i class="fa fa-folder-open text-yellow"></i> <span class="ev-file-name">Choose a file…</span>
+          <input type="file" name="file" style="display:none" onchange="var s=this.closest('.form-group').querySelector('.ev-file-name'); s.textContent=(this.files[0]?this.files[0].name:'Choose a file…');">
+        </label>
+      </div>
       <div class="col-sm-3 form-group"><button class="btn btn-default btn-block">Attach</button></div>
       <div class="col-sm-12 form-group"><input class="form-control" name="note" placeholder="…or a note instead of a file"></div>
     </form>

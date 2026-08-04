@@ -23,5 +23,6 @@ class UserRole extends Model
         'is_reviewer' => 'boolean',
         'is_approver' => 'boolean',
         'is_publisher' => 'boolean',
+        'is_admin' => 'boolean',
     ];
 }

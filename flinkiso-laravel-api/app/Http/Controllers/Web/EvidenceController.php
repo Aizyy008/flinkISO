@@ -31,7 +31,9 @@ class EvidenceController extends Controller
         $u = $request->session()->get('flink_user');
 
         $path = null;
+        $originalName = null;
         if ($request->hasFile('file')) {
+            $originalName = $request->file('file')->getClientOriginalName();
             $path = $request->file('file')->store('evidence');
         }
         if (!$path && empty($data['note'])) {
@@ -42,8 +44,9 @@ class EvidenceController extends Controller
             'related_type' => $data['related_type'],
             'related_id' => $data['related_id'],
             'evidence_type' => $data['evidence_type'],
-            'title' => ($data['title'] ?? null) ?: ($request->hasFile('file') ? $request->file('file')->getClientOriginalName() : 'Note'),
+            'title' => ($data['title'] ?? null) ?: ($originalName ?: 'Note'),
             'file_path' => $path,
+            'original_name' => $originalName,
             'json_data' => !empty($data['note'] ?? null) ? ['note' => $data['note']] : null,
             'created_by' => $u['id'],
         ]);
@@ -56,12 +59,20 @@ class EvidenceController extends Controller
         return redirect($data['redirect'])->with('ok', 'Evidence attached.');
     }
 
-    /** Stream a stored evidence file (authenticated). */
+    /** Stream a stored evidence file with its original filename + extension. */
     public function download(string $id)
     {
         $evidence = Evidence::findOrFail($id);
         abort_unless($evidence->file_path && Storage::exists($evidence->file_path), 404);
 
-        return Storage::download($evidence->file_path, $evidence->title);
+        // Prefer the original uploaded filename; otherwise fall back to the title,
+        // ensuring the real file extension (e.g. .pdf) is preserved either way.
+        $name = $evidence->original_name ?: $evidence->title;
+        $ext = pathinfo($evidence->file_path, PATHINFO_EXTENSION);
+        if ($ext && ! \Illuminate\Support\Str::endsWith(strtolower($name), '.' . strtolower($ext))) {
+            $name .= '.' . $ext;
+        }
+
+        return Storage::download($evidence->file_path, $name);
     }
 }
