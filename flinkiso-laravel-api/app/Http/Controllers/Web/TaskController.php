@@ -49,4 +49,29 @@ class TaskController extends Controller
 
         return back()->with('ok', 'Task marked as done.');
     }
+
+    /** Approve or reject an approval task (records an explicit decision). */
+    public function decide(Request $request, string $id)
+    {
+        $data = $request->validate(['decision' => 'required|in:approve,reject']);
+        $u = $request->session()->get('flink_user');
+        $task = Task::findOrFail($id);
+        abort_unless($task->assigned_to === $u['id'], 403, 'This task is not assigned to you.');
+
+        if ($task->status !== 'done') {
+            $outcome = $data['decision'] === 'approve' ? 'approved' : 'rejected';
+            $task->update([
+                'status' => 'done',
+                'outcome' => $outcome,
+                'completed_at' => now(),
+                'completed_by' => $u['id'],
+            ]);
+            $this->audit->record('qms_task', $task->id, 'approval_' . $outcome, [
+                'user_id' => $u['id'], 'username' => $u['username'],
+                'changes' => ['outcome' => ['old' => null, 'new' => $outcome]],
+            ]);
+        }
+
+        return back()->with('ok', 'Approval ' . $task->outcome . '.');
+    }
 }
