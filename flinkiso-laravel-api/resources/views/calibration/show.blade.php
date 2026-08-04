@@ -1,6 +1,6 @@
 @extends('layout')
 @section('title', $asset->reference)
-@section('page_title', 'Assets &amp; Calibration')
+@section('page_title', 'Assets & Calibration')
 @section('page_sub', $asset->name)
 @section('menu_calibration', 'active')
 @section('breadcrumb')<li><a href="/assets">Assets</a></li><li class="active">{{ $asset->reference }}</li>@endsection

@@ -89,7 +89,7 @@
 
 {{-- CCPs + monitoring --}}
 <div class="box box-warning">
-  <div class="box-header with-border"><h3 class="box-title">Critical Control Points (CCP) &amp; monitoring</h3></div>
+  <div class="box-header with-border"><h3 class="box-title">Critical Control Points (CCP) & monitoring</h3></div>
   <div class="box-body">
     @forelse($plan->ccps as $ccp)
     <div class="well" style="margin-bottom:12px;">

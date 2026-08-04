@@ -3,6 +3,7 @@
 namespace App\Services\Qms;
 
 use App\Models\Qms\Capa;
+use App\Models\Qms\Task;
 use App\Models\Qms\Workflow;
 use App\Models\Qms\WorkflowRun;
 use Illuminate\Support\Str;
@@ -117,27 +118,51 @@ class WorkflowEngine
                 return ['type' => 'create_capa', 'ok' => true, 'capa_id' => $capa->id];
 
             case 'assign_task':
-                // Assign the entity to a user and notify them of the task.
+                // Create a REAL task record for the assignee (not just a notification),
+                // then notify them. The task appears on their "My Tasks" list.
                 $assignee = $p['user_id'] ?? ($ctx['owner_id'] ?? $ctx['created_by'] ?? null);
+                $task = null;
                 if ($assignee) {
+                    $task = Task::create([
+                        'title' => $p['title'] ?? 'Task assigned by workflow',
+                        'description' => $p['body'] ?? null,
+                        'kind' => 'task',
+                        'assigned_to' => $assignee,
+                        'related_type' => $ctx['entity_type'] ?? null,
+                        'related_id' => $ctx['entity_id'] ?? null,
+                        'status' => 'open',
+                        'created_by' => $ctx['created_by'] ?? 'system',
+                    ]);
                     $this->notifier->notify($assignee, 'assignment',
                         $p['title'] ?? 'Task assigned by workflow',
-                        $p['body'] ?? null, $ctx['entity_type'] ?? null, $ctx['entity_id'] ?? null,
+                        $p['body'] ?? 'A task has been assigned to you.',
+                        $ctx['entity_type'] ?? null, $ctx['entity_id'] ?? null,
                         (bool) ($p['email'] ?? false));
                 }
-                return ['type' => 'assign_task', 'ok' => (bool) $assignee, 'assignee' => $assignee];
+                return ['type' => 'assign_task', 'ok' => (bool) $assignee, 'assignee' => $assignee, 'task_id' => $task?->id];
 
             case 'request_approval':
-                // Generate an approval request notification to the approver/owner.
+                // Create a REAL approval task for the approver, then notify them.
                 $approver = $p['approver_id'] ?? ($ctx['owner_id'] ?? null);
+                $approvalTask = null;
                 if ($approver) {
+                    $approvalTask = Task::create([
+                        'title' => $p['title'] ?? 'Approval requested',
+                        'description' => $p['body'] ?? 'An item requires your approval.',
+                        'kind' => 'approval',
+                        'assigned_to' => $approver,
+                        'related_type' => $ctx['entity_type'] ?? null,
+                        'related_id' => $ctx['entity_id'] ?? null,
+                        'status' => 'open',
+                        'created_by' => $ctx['created_by'] ?? 'system',
+                    ]);
                     $this->notifier->notify($approver, 'approval',
                         $p['title'] ?? 'Approval requested',
                         $p['body'] ?? 'An item requires your approval.',
                         $ctx['entity_type'] ?? null, $ctx['entity_id'] ?? null,
                         (bool) ($p['email'] ?? false));
                 }
-                return ['type' => 'request_approval', 'ok' => (bool) $approver, 'approver' => $approver];
+                return ['type' => 'request_approval', 'ok' => (bool) $approver, 'approver' => $approver, 'task_id' => $approvalTask?->id];
 
             default:
                 return ['type' => $type, 'ok' => false, 'error' => 'unknown action'];

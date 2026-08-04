@@ -24,22 +24,28 @@ class QmsOverdueReminders extends Command
         $today = now()->startOfDay();
         $count = 0;
 
+        // Due within the next 7 days OR already overdue — so assignees are warned
+        // before the deadline, not only after it passes.
+        $horizon = $today->copy()->addDays(7);
+
         $incidents = Incident::whereNotNull('assigned_to')->whereNotNull('due_date')
-            ->where('status', '!=', 'closed')->whereDate('due_date', '<', $today)->get();
+            ->where('status', '!=', 'closed')->whereDate('due_date', '<=', $horizon)->get();
         foreach ($incidents as $i) {
+            $overdue = $i->due_date->startOfDay()->lt($today);
             $notifier->notify($i->assigned_to, 'overdue',
-                "Overdue: incident {$i->reference}",
-                $i->title . ' was due ' . $i->due_date->format('d M Y'),
+                ($overdue ? 'Overdue: incident ' : 'Due soon: incident ') . $i->reference,
+                $i->title . ($overdue ? ' was due ' : ' is due ') . $i->due_date->format('d M Y'),
                 'qms_incident', $i->id, true);
             $count++;
         }
 
         $capas = Capa::whereNotNull('assigned_to')->whereNotNull('due_date')
-            ->whereNotIn('status', ['closed', 'cancelled'])->whereDate('due_date', '<', $today)->get();
+            ->whereNotIn('status', ['closed', 'cancelled'])->whereDate('due_date', '<=', $horizon)->get();
         foreach ($capas as $c) {
+            $overdue = $c->due_date->startOfDay()->lt($today);
             $notifier->notify($c->assigned_to, 'overdue',
-                "Overdue: CAPA {$c->reference}",
-                $c->title . ' was due ' . $c->due_date->format('d M Y'),
+                ($overdue ? 'Overdue: CAPA ' : 'Due soon: CAPA ') . $c->reference,
+                $c->title . ($overdue ? ' was due ' : ' is due ') . $c->due_date->format('d M Y'),
                 'qms_capa', $c->id, true);
             $count++;
         }

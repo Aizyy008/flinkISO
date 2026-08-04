@@ -1,6 +1,6 @@
 @extends('layout')
 @section('title', $training->title)
-@section('page_title', 'Training &amp; Competency')
+@section('page_title', 'Training & Competency')
 @section('page_sub', $training->reference)
 @section('menu_training', 'active')
 @section('breadcrumb')<li><a href="/training">Training</a></li><li class="active">{{ $training->reference }}</li>@endsection

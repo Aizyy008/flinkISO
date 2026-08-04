@@ -29,12 +29,14 @@ class UsersController extends Controller
             'reviewer' => 'nullable|boolean',
             'approver' => 'nullable|boolean',
             'publisher' => 'nullable|boolean',
+            'admin' => 'nullable|boolean',
         ]);
         $this->roles->setRoles($userId, [
             'creator' => $request->boolean('creator'),
             'reviewer' => $request->boolean('reviewer'),
             'approver' => $request->boolean('approver'),
             'publisher' => $request->boolean('publisher'),
+            'admin' => $request->boolean('admin'),
         ]);
         $u = $request->session()->get('flink_user');
         $this->audit->record('qms_user_role', $userId, 'roles_updated', [
@@ -42,6 +44,7 @@ class UsersController extends Controller
             'changes' => ['roles' => array_keys(array_filter([
                 'creator' => $request->boolean('creator'), 'reviewer' => $request->boolean('reviewer'),
                 'approver' => $request->boolean('approver'), 'publisher' => $request->boolean('publisher'),
+                'admin' => $request->boolean('admin'),
             ]))],
         ]);
         return back()->with('ok', 'Roles updated.');

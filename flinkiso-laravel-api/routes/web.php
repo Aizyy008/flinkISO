@@ -135,15 +135,22 @@ Route::middleware('webauth')->group(function () {
     Route::post('/kpi/{id}/result', [KpiController::class, 'storeResult']);
     Route::post('/kpi/{id}/sync', [KpiController::class, 'sync']); // push to ZaiKPI
 
-    // Workflow rules
-    Route::get('/workflows', [WorkflowController::class, 'index']);
-    Route::get('/workflows/create', [WorkflowController::class, 'create']);
-    Route::post('/workflows', [WorkflowController::class, 'store']);
-    Route::post('/workflows/{id}/toggle', [WorkflowController::class, 'toggle']);
+    // My Tasks (real tasks created by workflow assign/approval actions)
+    Route::get('/tasks', [\App\Http\Controllers\Web\TaskController::class, 'index']);
+    Route::post('/tasks/{id}/complete', [\App\Http\Controllers\Web\TaskController::class, 'complete']);
 
-    // Users & Roles (QMS document-workflow role assignment)
-    Route::get('/users', [\App\Http\Controllers\Web\UsersController::class, 'index']);
-    Route::post('/users/{userId}/roles', [\App\Http\Controllers\Web\UsersController::class, 'update']);
+    // Administrative areas — server-side gated to QMS administrators only.
+    Route::middleware('qmsadmin')->group(function () {
+        // Workflow rules
+        Route::get('/workflows', [WorkflowController::class, 'index']);
+        Route::get('/workflows/create', [WorkflowController::class, 'create']);
+        Route::post('/workflows', [WorkflowController::class, 'store']);
+        Route::post('/workflows/{id}/toggle', [WorkflowController::class, 'toggle']);
+
+        // Users & Roles (QMS document-workflow role assignment)
+        Route::get('/users', [\App\Http\Controllers\Web\UsersController::class, 'index']);
+        Route::post('/users/{userId}/roles', [\App\Http\Controllers\Web\UsersController::class, 'update']);
+    });
 
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index']);

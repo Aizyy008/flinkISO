@@ -37,6 +37,7 @@ class UserRoleService
                 'is_reviewer' => (bool) (($u->is_mr ?? 0) || ($u->is_hod ?? 0)),
                 'is_approver' => (bool) ($u->is_approver ?? 0),
                 'is_publisher' => (bool) ($u->is_publisher ?? 0),
+                'is_admin' => false,   // administrator capability is granted explicitly
             ]);
         }
     }
@@ -53,6 +54,7 @@ class UserRoleService
                 'reviewer' => (bool) ($r?->is_reviewer),
                 'approver' => (bool) ($r?->is_approver),
                 'publisher' => (bool) ($r?->is_publisher),
+                'admin' => (bool) ($r?->is_admin),
             ];
             return $u;
         });
@@ -74,14 +76,28 @@ class UserRoleService
         return (bool) ($r?->{'is_' . $role} ?? false);
     }
 
+    /** Is this user a QMS administrator (may manage Users & Roles and Workflows)? */
+    public function isAdmin(?string $userId): bool
+    {
+        if (! $userId) {
+            return false;
+        }
+        return (bool) (UserRole::where('user_id', $userId)->value('is_admin'));
+    }
+
     /** Replace a user's roles from a management-screen submission. */
     public function setRoles(string $userId, array $roles): void
     {
-        UserRole::updateOrCreate(['user_id' => $userId], [
+        $values = [
             'is_creator' => (bool) ($roles['creator'] ?? false),
             'is_reviewer' => (bool) ($roles['reviewer'] ?? false),
             'is_approver' => (bool) ($roles['approver'] ?? false),
             'is_publisher' => (bool) ($roles['publisher'] ?? false),
-        ]);
+        ];
+        // Only touch is_admin when the caller explicitly manages it.
+        if (array_key_exists('admin', $roles)) {
+            $values['is_admin'] = (bool) $roles['admin'];
+        }
+        UserRole::updateOrCreate(['user_id' => $userId], $values);
     }
 }

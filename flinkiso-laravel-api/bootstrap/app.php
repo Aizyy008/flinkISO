@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'jwt' => \App\Http\Middleware\JwtAuthenticate::class,
             'webauth' => \App\Http\Middleware\WebAuth::class,
+            'qmsadmin' => \App\Http\Middleware\RequireQmsAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

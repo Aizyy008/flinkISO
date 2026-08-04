@@ -16,7 +16,14 @@
         </select>
       </div>
       <div class="col-sm-3 form-group"><label class="small">Title</label><input class="form-control" name="title" placeholder="e.g. Temperature log"></div>
-      <div class="col-sm-3 form-group"><label class="small">File</label><input type="file" name="file" class="form-control"></div>
+      <div class="col-sm-3 form-group">
+        <label class="small">File</label>
+        <label class="btn btn-default btn-block text-left" style="font-weight:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0;">
+          <i class="fa fa-folder-open text-yellow"></i> <span class="ev-file-name">Choose a file…</span>
+          <input type="file" name="file" style="display:none" onchange="var s=this.closest('.form-group').querySelector('.ev-file-name'); s.textContent=(this.files[0]?this.files[0].name:'Choose a file…');">
+        </label>
+        <span class="help-block small" style="margin:3px 0 0;">Original filename is kept on download.</span>
+      </div>
       <div class="col-sm-2 form-group"><label class="small">…or a note</label><input class="form-control" name="note" placeholder="note / measurement"></div>
       <div class="col-sm-2 form-group"><label class="small">&nbsp;</label><button class="btn btn-default btn-block"><i class="fa fa-upload"></i> Attach</button></div>
     </form>

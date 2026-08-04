@@ -1,6 +1,6 @@
 @extends('layout')
-@section('title', 'Assets &amp; Calibration')
-@section('page_title', 'Assets &amp; Calibration')
+@section('title', 'Assets & Calibration')
+@section('page_title', 'Assets & Calibration')
 @section('menu_calibration', 'active')
 @section('breadcrumb')<li class="active">Calibration</li>@endsection
 @php $badge = ['ok'=>'success','due'=>'warning','overdue'=>'danger','n/a'=>'default']; @endphp

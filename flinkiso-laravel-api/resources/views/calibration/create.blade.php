@@ -1,6 +1,6 @@
 @extends('layout')
 @section('title', 'New asset')
-@section('page_title', 'Assets &amp; Calibration')
+@section('page_title', 'Assets & Calibration')
 @section('page_sub', 'new asset')
 @section('menu_calibration', 'active')
 @section('breadcrumb')<li><a href="/assets">Assets</a></li><li class="active">New</li>@endsection

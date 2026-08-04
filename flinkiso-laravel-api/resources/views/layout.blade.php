@@ -69,6 +69,11 @@
 </head>
 <body class="hold-transition skin-blue sidebar-mini fixed @if(!session('flink_user'))login-page @endif">
 @if(session('flink_user'))
+@php
+  $flinkUserId = session('flink_user')['id'];
+  $isQmsAdmin = app(\App\Services\Qms\UserRoleService::class)->isAdmin($flinkUserId);
+  $qmsTasksOpen = \App\Models\Qms\Task::where('assigned_to', $flinkUserId)->where('status', 'open')->count();
+@endphp
 <div class="wrapper">
 
   <header class="main-header">
@@ -101,13 +106,16 @@
         <li class="@yield('menu_risks')"><a href="/risks"><i class="fa fa-shield"></i> <span>Risk Register</span></a></li>
         <li class="@yield('menu_haccp')"><a href="/haccp"><i class="fa fa-flask"></i> <span>HACCP</span></a></li>
         <li class="@yield('menu_training')"><a href="/training"><i class="fa fa-graduation-cap"></i> <span>Training</span></a></li>
-        <li class="@yield('menu_calibration')"><a href="/assets"><i class="fa fa-wrench"></i> <span>Assets &amp; Calibration</span></a></li>
+        <li class="@yield('menu_calibration')"><a href="/assets"><i class="fa fa-wrench"></i> <span>Assets & Calibration</span></a></li>
         <li class="@yield('menu_kpi')"><a href="/kpi/dashboard"><i class="fa fa-tachometer"></i> <span>KPI Dashboard</span></a></li>
         <li class="@yield('menu_forms')"><a href="/forms"><i class="fa fa-list-alt"></i> <span>Forms</span></a></li>
         <li class="@yield('menu_formbuilder')"><a href="/form-builder"><i class="fa fa-object-group"></i> <span>Form Builder</span></a></li>
         <li class="header">AUTOMATION</li>
-        <li class="@yield('menu_users')"><a href="/users"><i class="fa fa-users"></i> <span>Users &amp; Roles</span></a></li>
+        <li class="@yield('menu_tasks')"><a href="/tasks"><i class="fa fa-tasks"></i> <span>My Tasks</span> @if($qmsTasksOpen)<span class="pull-right-container"><small class="label pull-right bg-blue">{{ $qmsTasksOpen }}</small></span>@endif</a></li>
+        @if($isQmsAdmin)
+        <li class="@yield('menu_users')"><a href="/users"><i class="fa fa-users"></i> <span>Users & Roles</span></a></li>
         <li class="@yield('menu_workflows')"><a href="/workflows"><i class="fa fa-cogs"></i> <span>Workflow rules</span></a></li>
+        @endif
         <li class="@yield('menu_notifications')"><a href="/notifications"><i class="fa fa-bell-o"></i> <span>Notifications</span> <span class="pull-right-container"><small class="label pull-right bg-yellow notif-badge" @if(!$qmsUnread)style="display:none;"@endif>{{ $qmsUnread }}</small></span></a></li>
       </ul>
     </section>

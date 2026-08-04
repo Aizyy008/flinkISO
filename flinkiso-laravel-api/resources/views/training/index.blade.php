@@ -1,6 +1,6 @@
 @extends('layout')
 @section('title', 'Training')
-@section('page_title', 'Training &amp; Competency')
+@section('page_title', 'Training & Competency')
 @section('menu_training', 'active')
 @section('breadcrumb')<li class="active">Training</li>@endsection
 @php

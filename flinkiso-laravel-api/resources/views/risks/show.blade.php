@@ -36,7 +36,7 @@
             </div>
           </div>
           <div class="form-group"><label>Treatment plan</label><textarea class="form-control" name="treatment_plan" rows="2">{{ $risk->treatment_plan }}</textarea></div>
-          <button class="btn btn-primary btn-sm">Recalculate &amp; save</button>
+          <button class="btn btn-primary btn-sm">Recalculate & save</button>
         </form>
       </div>
     </div>

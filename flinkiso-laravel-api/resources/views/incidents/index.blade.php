@@ -1,7 +1,7 @@
 @extends('layout')
 @section('title', 'Incidents')
 @section('page_title', 'Incidents')
-@section('page_sub', 'non-conformities &amp; deviations')
+@section('page_sub', 'non-conformities & deviations')
 @section('menu_incidents', 'active')
 @section('breadcrumb')<li class="active">Incidents</li>@endsection
 @section('content')
