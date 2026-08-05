@@ -85,8 +85,9 @@ class ZaiKpiClient
         // require a UUID — so derive a deterministic UUID per value (stable across
         // re-syncs) and carry the human name in the label.
         $links = [];
-        foreach (['standard' => $kpi->standard, 'process' => $kpi->related_process,
-                  'department' => $kpi->related_department, 'site' => $kpi->related_site] as $type => $value) {
+        foreach (['standard' => $kpi->standard, 'clause' => $kpi->clause,
+                  'process' => $kpi->related_process, 'department' => $kpi->related_department,
+                  'site' => $kpi->related_site] as $type => $value) {
             if ($value) {
                 $links[] = [
                     'link_type' => $type,
