@@ -174,6 +174,7 @@ class KpiController extends Controller
             'description' => 'nullable|string',
             'area' => 'required|in:' . implode(',', array_keys(self::AREAS)),
             'standard' => 'nullable|string|max:40',
+            'clause' => 'nullable|string|max:40',
             'unit' => 'nullable|string|max:40',
             'calculation_method' => 'nullable|string|max:255',
             'target_value' => 'nullable|numeric',

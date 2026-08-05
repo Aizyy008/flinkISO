@@ -13,8 +13,9 @@
     <div class="box-body">
       <div class="row">
         <div class="col-sm-6 form-group"><label>Name *</label><input class="form-control" name="name" value="{{ old('name') }}" required placeholder="e.g. On-Time Delivery"></div>
-        <div class="col-sm-3 form-group"><label>Area *</label><select class="form-control" name="area">@foreach($areas as $k=>$v)<option value="{{ $k }}">{{ $v }}</option>@endforeach</select></div>
-        <div class="col-sm-3 form-group"><label>Standard</label><input class="form-control" name="standard" placeholder="ISO 9001"></div>
+        <div class="col-sm-2 form-group"><label>Area *</label><select class="form-control" name="area">@foreach($areas as $k=>$v)<option value="{{ $k }}">{{ $v }}</option>@endforeach</select></div>
+        <div class="col-sm-2 form-group"><label>Standard</label><input class="form-control" name="standard" value="{{ old('standard') }}" placeholder="ISO 9001"></div>
+        <div class="col-sm-2 form-group"><label>ISO clause</label><input class="form-control" name="clause" value="{{ old('clause') }}" placeholder="e.g. 9.1.1"></div>
       </div>
       <div class="row">
         <div class="col-sm-3 form-group"><label>Unit</label><input class="form-control" name="unit" placeholder="%, hrs, ppm"></div>
