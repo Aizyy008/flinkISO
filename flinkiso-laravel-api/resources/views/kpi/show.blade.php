@@ -68,7 +68,10 @@
     <div class="box box-default">
       <div class="box-header with-border"><h3 class="box-title">Definition</h3></div>
       <div class="box-body no-padding"><table class="table">
-        <tr><th style="width:45%;">Area / Standard</th><td>{{ $areas[$kpi->area] ?? $kpi->area }}@if($kpi->standard) / {{ $kpi->standard }}@endif@if($kpi->clause) (clause {{ $kpi->clause }})@endif</td></tr>
+        <tr><th style="width:45%;">Area / Standard</th><td>
+          {{ $areas[$kpi->area] ?? $kpi->area }}@if($kpi->standard) / {{ $kpi->standard }}@endif
+          @if($kpi->clause) (clause {{ $kpi->clause }})@endif
+        </td></tr>
         <tr><th>Target</th><td>{{ $kpi->target_value !== null ? rtrim(rtrim(number_format((float)$kpi->target_value,4),'0'),'.') : '—' }} {{ $kpi->unit }}</td></tr>
         <tr><th>Warning / Critical</th><td>{{ $kpi->warning_threshold ?? '—' }} / {{ $kpi->critical_threshold ?? '—' }}</td></tr>
         <tr><th>Direction</th><td>{{ str_replace('_',' ',$kpi->direction) }}</td></tr>
