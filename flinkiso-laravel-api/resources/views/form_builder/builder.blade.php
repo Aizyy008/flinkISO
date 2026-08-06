@@ -31,6 +31,7 @@
             <option value="capa" @selected(($form->feeds_record_type ?? '')==='capa')>CAPA</option>
             <option value="audit" @selected(($form->feeds_record_type ?? '')==='audit')>Audit checklist</option>
             <option value="haccp" @selected(($form->feeds_record_type ?? '')==='haccp')>HACCP plan</option>
+            <option value="validation" @selected(($form->feeds_record_type ?? '')==='validation')>GMP / Validation log</option>
           </select>
         </div>
       </div>

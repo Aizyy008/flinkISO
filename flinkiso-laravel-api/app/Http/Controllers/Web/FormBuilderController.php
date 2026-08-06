@@ -10,6 +10,7 @@ use App\Models\Qms\FormSubmission;
 use App\Models\Qms\HaccpPlan;
 use App\Models\Qms\Incident;
 use App\Models\Qms\Risk;
+use App\Models\Qms\Validation;
 use App\Services\Qms\AuditTrailService;
 use App\Services\Qms\WorkflowEngine;
 use Illuminate\Http\Request;
@@ -74,7 +75,7 @@ class FormBuilderController extends Controller
             'description' => 'nullable|string',
             'category' => 'nullable|string|max:60',
             'status' => 'required|in:draft,active,archived',
-            'feeds_record_type' => 'nullable|in:incident,risk,capa,audit,haccp',
+            'feeds_record_type' => 'nullable|in:incident,risk,capa,audit,haccp,validation',
             'trigger_event' => 'nullable|string|max:80',
             'fields_json' => 'required|string',
         ]);
@@ -259,6 +260,15 @@ class FormBuilderController extends Controller
                 'description' => $description, 'status' => 'draft', 'created_by' => $u['id'],
             ]);
             return ['type' => 'qms_haccp_plan', 'id' => $plan->id, 'ref' => $plan->reference];
+        }
+        if ($form->feeds_record_type === 'validation') {
+            $v = Validation::create([
+                'reference' => 'VAL ' . date('Y') . ' ' . sprintf('%04d', Validation::where('reference', 'like', 'VAL ' . date('Y') . ' %')->count() + 1),
+                'title' => Str::limit($title, 255),
+                'type' => in_array($data['type'] ?? '', array_keys(Validation::TYPES), true) ? $data['type'] : 'other',
+                'description' => $description, 'status' => 'in_progress', 'created_by' => $u['id'],
+            ]);
+            return ['type' => 'qms_validation', 'id' => $v->id, 'ref' => $v->reference];
         }
         return null;
     }
