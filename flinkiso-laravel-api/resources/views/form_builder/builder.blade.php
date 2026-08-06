@@ -28,6 +28,9 @@
           <select class="form-control" name="feeds_record_type"><option value="">(none)</option>
             <option value="incident" @selected(($form->feeds_record_type ?? '')==='incident')>Incident / NC</option>
             <option value="risk" @selected(($form->feeds_record_type ?? '')==='risk')>Risk</option>
+            <option value="capa" @selected(($form->feeds_record_type ?? '')==='capa')>CAPA</option>
+            <option value="audit" @selected(($form->feeds_record_type ?? '')==='audit')>Audit checklist</option>
+            <option value="haccp" @selected(($form->feeds_record_type ?? '')==='haccp')>HACCP plan</option>
           </select>
         </div>
       </div>

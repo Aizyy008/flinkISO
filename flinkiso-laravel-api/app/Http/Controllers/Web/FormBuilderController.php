@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\Qms\Audit;
+use App\Models\Qms\Capa;
 use App\Models\Qms\Form;
 use App\Models\Qms\FormSubmission;
+use App\Models\Qms\HaccpPlan;
 use App\Models\Qms\Incident;
 use App\Models\Qms\Risk;
 use App\Services\Qms\AuditTrailService;
@@ -71,7 +74,7 @@ class FormBuilderController extends Controller
             'description' => 'nullable|string',
             'category' => 'nullable|string|max:60',
             'status' => 'required|in:draft,active,archived',
-            'feeds_record_type' => 'nullable|in:incident,risk',
+            'feeds_record_type' => 'nullable|in:incident,risk,capa,audit,haccp',
             'trigger_event' => 'nullable|string|max:80',
             'fields_json' => 'required|string',
         ]);
@@ -229,6 +232,33 @@ class FormBuilderController extends Controller
             $risk->recalculate();
             $risk->save();
             return ['type' => 'qms_risk', 'id' => $risk->id, 'ref' => $risk->reference];
+        }
+        if ($form->feeds_record_type === 'capa') {
+            $capa = Capa::create([
+                'reference' => 'CAPA ' . date('Y') . ' ' . sprintf('%04d', Capa::where('reference', 'like', 'CAPA ' . date('Y') . ' %')->count() + 1),
+                'title' => Str::limit($title, 255),
+                'type' => in_array($data['type'] ?? '', ['corrective', 'preventive'], true) ? $data['type'] : 'corrective',
+                'priority' => in_array($data['priority'] ?? '', ['low', 'medium', 'high'], true) ? $data['priority'] : 'medium',
+                'action_plan' => $description, 'status' => 'open', 'created_by' => $u['id'],
+            ]);
+            return ['type' => 'qms_capa', 'id' => $capa->id, 'ref' => $capa->reference];
+        }
+        if ($form->feeds_record_type === 'audit') {
+            $audit = Audit::create([
+                'reference' => 'AUD ' . date('Y') . ' ' . sprintf('%04d', Audit::where('reference', 'like', 'AUD ' . date('Y') . ' %')->count() + 1),
+                'title' => Str::limit($title, 255),
+                'audit_type' => in_array($data['audit_type'] ?? '', ['internal', 'external', 'supplier'], true) ? $data['audit_type'] : 'internal',
+                'scope' => $description, 'status' => 'scheduled', 'created_by' => $u['id'],
+            ]);
+            return ['type' => 'qms_audit', 'id' => $audit->id, 'ref' => $audit->reference];
+        }
+        if ($form->feeds_record_type === 'haccp') {
+            $plan = HaccpPlan::create([
+                'reference' => 'HACCP ' . date('Y') . ' ' . sprintf('%04d', HaccpPlan::where('reference', 'like', 'HACCP ' . date('Y') . ' %')->count() + 1),
+                'product' => Str::limit($title, 255),
+                'description' => $description, 'status' => 'draft', 'created_by' => $u['id'],
+            ]);
+            return ['type' => 'qms_haccp_plan', 'id' => $plan->id, 'ref' => $plan->reference];
         }
         return null;
     }
