@@ -6,6 +6,13 @@
 @section('breadcrumb')<li><a href="/form-builder">Form Builder</a></li><li class="active">{{ $form ? 'Edit' : 'New' }}</li>@endsection
 @php
   $types = \App\Http\Controllers\Web\FormBuilderController::FIELD_TYPES;
+  // Prepared here (not inside @json) so Blade's directive parser doesn't choke
+  // on a multi-line closure argument.
+  $fieldsData = collect($fields)->map(fn ($f) => [
+    'field_key' => $f->field_key, 'label' => $f->label, 'field_type' => $f->field_type,
+    'options' => $f->options ?: [], 'required' => (bool) $f->required, 'placeholder' => $f->placeholder,
+    'help_text' => $f->help_text, 'cond_field' => $f->cond_field, 'cond_op' => $f->cond_op, 'cond_value' => $f->cond_value,
+  ])->values();
 @endphp
 @section('content')
 <form method="post" action="{{ $form ? '/form-builder/'.$form->id : '/form-builder' }}" id="formBuilderForm" enctype="multipart/form-data">
@@ -75,13 +82,7 @@
 (function () {
   var TYPES = @json($types);
   var CHOICE = ['dropdown','multiselect','radio'];
-  var fields = @json(collect($fields)->map(function ($f) {
-    return [
-      'field_key' => $f->field_key, 'label' => $f->label, 'field_type' => $f->field_type,
-      'options' => $f->options ?: [], 'required' => (bool) $f->required, 'placeholder' => $f->placeholder,
-      'help_text' => $f->help_text, 'cond_field' => $f->cond_field, 'cond_op' => $f->cond_op, 'cond_value' => $f->cond_value,
-    ];
-  })->values());
+  var fields = @json($fieldsData);
 
   var list = document.getElementById('fieldList');
   var hint = document.getElementById('emptyHint');
