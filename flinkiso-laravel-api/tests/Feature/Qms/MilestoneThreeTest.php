@@ -80,6 +80,26 @@ class MilestoneThreeTest extends TestCase
         $this->assertSame('critical', $kpi->statusFor(80));
     }
 
+    public function test_kpi_threshold_breach_fires_workflow(): void
+    {
+        // A live rule listening for KPI breaches (as seeded by KpiDemoSeeder).
+        \App\Models\Qms\Workflow::create([
+            'name' => 'KPI breach', 'trigger_event' => 'kpi.threshold_breached', 'conditions' => [],
+            'actions' => [['type' => 'create_capa', 'params' => ['title' => 'Auto from KPI']]],
+            'active' => true, 'created_by' => $this->u['id'],
+        ]);
+        app(KpiController::class)->store($this->req([
+            'name' => 'OTD Breach', 'area' => 'quality', 'direction' => 'higher_better',
+            'aggregation' => 'monthly', 'target_value' => 95, 'warning_threshold' => 90, 'critical_threshold' => 85,
+        ]));
+        $kpi = Kpi::where('name', 'OTD Breach')->first();
+        $before = \App\Models\Qms\Capa::count();
+
+        // Record a value below the critical threshold → breach fires the workflow.
+        app(KpiController::class)->storeResult($this->req(['period_label' => '2026-02', 'period_date' => '2026-02-28', 'value' => 80]), $kpi->id);
+        $this->assertGreaterThan($before, \App\Models\Qms\Capa::count(), 'A KPI threshold breach must fire the workflow (raise a CAPA).');
+    }
+
     public function test_training_completion_sets_expiry_and_competency(): void
     {
         app(TrainingController::class)->store($this->req(['title' => 'Food Hygiene', 'validity_months' => 12]));

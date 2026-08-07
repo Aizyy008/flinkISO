@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Qms\Kpi;
+use App\Models\Qms\Workflow;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -52,6 +53,22 @@ class KpiDemoSeeder extends Seeder
             $created++;
         }
 
-        $this->command->info($created ? "Seeded {$created} demo KPI(s) with monthly results." : 'Demo KPIs already present, nothing to add.');
+        // A live workflow rule so a KPI threshold breach is visibly actioned
+        // (notify the KPI owner + raise a CAPA) — this is the "threshold workflow"
+        // the acceptance guide's KPI step describes. Idempotent.
+        Workflow::firstOrCreate(
+            ['trigger_event' => 'kpi.threshold_breached', 'name' => 'KPI breach → notify + CAPA'],
+            [
+                'conditions' => [],
+                'actions' => [
+                    ['type' => 'notify', 'params' => ['title' => 'KPI threshold breached', 'body' => 'A KPI has breached its warning/critical threshold — please review.', 'email' => true]],
+                    ['type' => 'create_capa', 'params' => ['type' => 'corrective', 'title' => 'CAPA from KPI threshold breach']],
+                ],
+                'active' => true,
+                'created_by' => $u,
+            ]
+        );
+
+        $this->command->info(($created ? "Seeded {$created} demo KPI(s) with monthly results." : 'Demo KPIs already present.') . ' KPI breach workflow rule ensured.');
     }
 }
