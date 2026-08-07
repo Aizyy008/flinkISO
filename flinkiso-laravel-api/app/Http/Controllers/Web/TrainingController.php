@@ -69,10 +69,29 @@ class TrainingController extends Controller
         $training = Training::findOrFail($id);
         $u = $this->user($request);
 
-        $record = TrainingRecord::firstOrCreate(
-            ['training_id' => $training->id, 'user_id' => $data['user_id'], 'status' => 'assigned'],
-            ['created_by' => $u['id']]
-        );
+        // Prevent duplicate assignments: block if the user already has an active
+        // record (assigned / in progress) or a completed one still within its
+        // validity period. Re-assignment is only allowed once it has expired.
+        $existing = TrainingRecord::where('training_id', $training->id)
+            ->where('user_id', $data['user_id'])
+            ->where(function ($q) {
+                $q->whereIn('status', ['assigned', 'in_progress'])
+                    ->orWhere(function ($q2) {
+                        $q2->where('status', 'completed')
+                            ->where(function ($q3) {
+                                $q3->whereNull('expiry_date')->orWhereDate('expiry_date', '>=', now());
+                            });
+                    });
+            })
+            ->first();
+        if ($existing) {
+            return back()->with('ok', 'This user already has an active assignment for this training.');
+        }
+
+        TrainingRecord::create([
+            'training_id' => $training->id, 'user_id' => $data['user_id'],
+            'status' => 'assigned', 'created_by' => $u['id'],
+        ]);
         $this->notifier->notify($data['user_id'], 'assignment',
             "Training assigned: {$training->title}",
             'Please complete the required training.', 'qms_training', $training->id, true);

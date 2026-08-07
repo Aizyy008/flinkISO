@@ -94,6 +94,17 @@ class MilestoneThreeTest extends TestCase
         $this->assertSame('valid', $record->competency());
     }
 
+    public function test_duplicate_training_assignment_is_prevented(): void
+    {
+        app(TrainingController::class)->store($this->req(['title' => 'Food Hygiene', 'validity_months' => 12]));
+        $training = Training::first();
+        // Assign the same user twice.
+        app(TrainingController::class)->assign($this->req(['user_id' => $this->u['id']]), $training->id);
+        app(TrainingController::class)->assign($this->req(['user_id' => $this->u['id']]), $training->id);
+        // Only one active assignment is created.
+        $this->assertSame(1, TrainingRecord::where('training_id', $training->id)->where('user_id', $this->u['id'])->count());
+    }
+
     public function test_calibration_sets_next_due_and_status(): void
     {
         app(CalibrationController::class)->store($this->req(['name' => 'Thermometer', 'requires_calibration' => 1, 'calibration_frequency_months' => 6]));
