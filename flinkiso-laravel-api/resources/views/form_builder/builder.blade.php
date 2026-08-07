@@ -90,9 +90,13 @@
   var form = document.getElementById('formBuilderForm');
 
   function keyFor(label, i) { return (label || 'field').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') + '_' + i; }
+  // A STABLE, unique field_key assigned at creation — so conditional-visibility
+  // rules (cond_field) always reference a key that survives label edits and
+  // reordering. Never regenerated once set.
+  function newKey(label) { return ((label || 'field').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'field') + '_' + Math.random().toString(36).slice(2, 7); }
 
   function addField(type, at) {
-    var f = { field_key: '', label: TYPES[type] || 'Field', field_type: type, options: CHOICE.indexOf(type) > -1 ? ['Option 1','Option 2'] : [], required: false, placeholder: '', help_text: '', cond_field: '', cond_op: '', cond_value: '' };
+    var f = { field_key: newKey(TYPES[type] || 'field'), label: TYPES[type] || 'Field', field_type: type, options: CHOICE.indexOf(type) > -1 ? ['Option 1','Option 2'] : [], required: false, placeholder: '', help_text: '', cond_field: '', cond_op: '', cond_value: '' };
     if (typeof at === 'number') fields.splice(at, 0, f); else fields.push(f);
     render();
   }

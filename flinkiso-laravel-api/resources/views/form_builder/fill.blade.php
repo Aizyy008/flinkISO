@@ -113,8 +113,14 @@
   // ---- Conditional visibility ----
   var fields = document.querySelectorAll('.js-field[data-cond-field]');
   function val(key) {
-    var el = document.querySelector('[name="f_' + key + '"]');
-    if (!el) return '';
+    var els = document.querySelectorAll('[name="f_' + key + '"]');
+    if (!els.length) return '';
+    // Radio group: return the CHECKED option's value (not just the first radio).
+    if (els[0].type === 'radio') {
+      for (var i = 0; i < els.length; i++) { if (els[i].checked) return els[i].value; }
+      return '';
+    }
+    var el = els[0];
     if (el.type === 'checkbox') return el.checked ? el.value : '';
     return el.value;
   }
