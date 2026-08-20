@@ -4,7 +4,9 @@
 REST API + JWT, Postman collection, ISO overlay fields (14001/45001/27001/13485/17025),
 FastAPI AI microservice, testing, documentation, handover.
 
-Branch: **`milestone_1.4`** (contains all of M1–M3). Status: **implemented + tested locally**.
+Branch: **`milestone_1.4`**, merged into **`main`** on 2026‑08‑07 (contains all of M1–M3 + M2.2 + post-landing
+hardening). Status: **implemented, tested, and deployed to staging** (`main` is the branch now deployed to
+`qms.flinkiso.dctrd.us` — see the 2026‑08‑16 update in §8 and the new §10 below).
 
 ---
 
@@ -47,6 +49,13 @@ Deploy: `php artisan migrate --force`.
   **validations**, and **ai** (health, risk-score, capa-suggest, anomaly).
 - **63 API routes total.** Import `docs/flinkiso-qms-api.postman_collection.json`, set `{{base_url}}`,
   run **Auth → Login** (fill the password) to capture `{{token}}`, then run any request.
+- **Test credentials — ⚠️ MISSING, needs filling in before this counts as a complete handover note**
+  (the client's acceptance doc explicitly requires "test credentials" in the final handover note; this
+  doc doesn't have any yet). `webauth`/JWT both authenticate against the read-only legacy
+  `flinkisodb.users` table, so a test login can't be freshly seeded from the Laravel side — either name
+  an existing QMS user here, or have one created directly in `flinkisodb.users` and record its
+  username here (never the password itself — reference where it's stored, e.g.
+  `DEPLOY-CREDENTIALS.txt`).
 
 ---
 
@@ -119,19 +128,81 @@ real incident, HACCP anomaly from CCP logs. AI service unit outputs verified ind
 
 ---
 
-## 8. Known limitations / remaining polish
+## 8. Known limitations / remaining polish — updated 2026‑08‑19
 
-- **AI service deployment** is documented but not yet stood up on a server (needs a Python host +
-  persistent process). The service + integration are complete and tested locally.
-- **CAPA suggestions** use the rule-based engine until `OPENAI_API_KEY` is set on the AI host; then
-  they use OpenAI automatically.
-- ISO overlays are implemented on **Incidents** (the core NC/deviation record). Extend the same
-  config-driven pattern to other records if the client wants overlays elsewhere.
+- ~~AI service deployment is documented but not yet stood up on a server~~ ~~needs a `systemd` unit~~
+  **Both DONE, confirmed 2026‑08‑18.** The AI service runs at `/opt/flinkiso-ai`, is registered with
+  `systemd` (`flinkiso-ai.service`), enabled on boot, and active on port 8100.
+- **Still open: FlinkISO's own `.env` has no `AI_*` values set at all** (`grep '^AI_' .env` on the
+  server returns nothing, checked 2026‑08‑19). FlinkISO cannot call the AI service until
+  `AI_SERVICE_ENABLED=true`, `AI_SERVICE_URL=http://127.0.0.1:8100`, and `AI_SERVICE_TOKEN` are added.
+  The AI host **does** enforce a bearer token (confirmed: `POST /ai/risk-score` without a header returns
+  `401 Invalid or missing bearer token`) — get the exact value from whoever has root
+  (`sudo grep AI_SERVICE_TOKEN /opt/flinkiso-ai/.env`), it's not readable by the app's own deploy user.
+- **CAPA suggestions** use the rule-based engine until a working LLM key is set on the AI host. The
+  OpenAI key on file is valid but the OpenAI account has **no billing credit**
+  (`insufficient_quota`/`credit_balance_exhausted`) — add credit at platform.openai.com → Billing, or
+  switch `AI_PROVIDER` to Anthropic/Gemini/Ollama (the provider abstraction in `ai-service/app/providers.py`
+  already supports all of these — just needs that provider's key/env vars set on the AI host).
+  *(Client confirmed 2026‑08‑18 credit will be added; not yet verified as of 2026‑08‑19.)*
+- **Test credentials missing from this handover note** — see §3, flagged there. The client's acceptance
+  doc explicitly requires this; needs a real QMS-side username filled in before final sign-off.
+- **`project_1/DEPLOYMENT.md` (the standalone setup/migration guide) is stale** — it still documents the
+  `milestone_1.2` deploy flow and has no mention of the AI service, JWT API, or ISO overlays added in
+  M2.2. The client's acceptance criterion ("we can follow the setup/migration guide") is satisfied by
+  §7 of *this* handover doc, but if the client specifically opens `DEPLOYMENT.md` they'll find outdated
+  content — worth syncing before calling documentation fully complete.
+- **Open question, not confirmed either way:** the earliest client specs (`Project 1.pdf`,
+  `FlickISO Upgrate.pdf`) describe the REST API layer as built specifically "to integrate Perfex CRM"
+  (pulling HR/assets/products/manufacturing data from a Perfex CRM instance). No Perfex CRM integration
+  exists anywhere in this codebase, and the later, authoritative `FlinkISO_Milestone distribution.docx`
+  (the doc that actually gates payment) describes the API generically with **no mention of Perfex CRM at
+  all** — consistent with this having been superseded during scope negotiation, the same way the ZaiKPI
+  integration scope was later reduced by `Exceptions.txt`. Treated here as dropped, but **this has never
+  been explicitly confirmed with the client in writing** — worth a one-line confirmation before final
+  sign-off so it can't resurface as a "missing deliverable" later.
+- ISO overlays are implemented on **Incidents** (the core NC/deviation record), 5 fields per standard.
+  `FlinkISO QMS Expansion.pdf` (the estimation reference doc) lists a much larger menu of possible fields
+  per standard (~20+ for ISO 14001 alone) — the 5-field set implemented is an intentional curated subset
+  that satisfies the binding acceptance test ("we can see ISO-specific overlay fields in the relevant
+  records/screens"), not a literal implementation of that doc's full estimation menu. Extend via
+  `config/iso_overlays.php` (no migration needed) if the client wants more fields or overlays on records
+  beyond Incidents. *(Open — optional, not requested yet.)*
 - Demo videos/screenshots (a docx deliverable) are not produced here — capture during the staging demo.
+  *(Still open.)*
+- Email from `qms@dctrd.us`: DKIM + DMARC TXT records **added and verified resolving in OVH DNS,
+  confirmed 2026‑08‑18.** SPF was already live. *(Not M2.2 scope, but bundled into the same go-live push
+  — now fully done.)*
 
 ---
 
-## 9. New/changed files (register)
+## 10. Post-landing hardening (2026‑07‑21 → 2026‑08‑07) — not in the original §1 delivery table
+
+`milestone_1.4` kept moving after the initial M2.2 commit; this handover doc previously only described
+the day‑one state. The following was added afterward and is included in what's now deployed on `main`:
+
+- E‑signature requirement extended to **GMP/Validation** and **HACCP plan** approvals, each with automated
+  tests (previously e‑signatures only covered Document Control Approve/Release).
+- Two production-breaking Blade bugs fixed: KPI detail page 500 (`@endif@if` adjacency broke compilation)
+  and Form Builder page 500 (`@json` couldn't parse an inline multi-line closure).
+- Form Builder submissions can now feed **CAPA, Audit, HACCP, and GMP/Validation** records (previously
+  only Incident + Risk).
+- ZaiKPI sync (`ZaiKpiClient`) now transfers the ISO **clause** alongside the standard, not just the standard.
+- A round of M1.2/M2/M3 acceptance fixes: role-based Document Control workflow (Creator→Reviewer→
+  Approver→Publisher, each lifecycle action visible only to the role that can perform it), required-field
+  validation made non-silent, independent review per document version, single-role test accounts for
+  clean acceptance testing, CAPA "Closed" disabled until effectiveness is verified, admin authorization
+  fixes, real task records, evidence filename handling, de-duplicated same-day reminders.
+- A real automated test suite now exists (`tests/Feature/Qms/{MilestoneTwoTest,MilestoneTwoFixesTest,
+  MilestoneThreeTest,MilestoneFourTest,FormBuilderFeedTest,FormBuilderValidationFeedTest,ZaiKpiSyncTest}.php`)
+  — the root `README.md`'s "no committed test suite" line is stale.
+
+**Current blockers to calling M2.2 fully live are access-gated, not code-gated** (see §8): OpenAI billing
+credit, root access to register the `systemd` unit, and OVH DNS access for the email records.
+
+---
+
+## 11. New/changed files (register)
 
 **New (FlinkISO):** `Api/Qms/{KpiController,TrainingController,CalibrationController,HaccpController,ValidationController,AiController}.php`,
 `Web/ValidationController.php`, `Models/Qms/Validation.php`, `Services/Ai/AiClient.php`,
