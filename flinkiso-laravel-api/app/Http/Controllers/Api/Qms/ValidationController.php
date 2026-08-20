@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Qms;
 use App\Http\Controllers\Controller;
 use App\Models\Qms\Validation;
 use App\Services\Qms\AuditTrailService;
+use App\Services\Qms\SignatureService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -13,7 +14,7 @@ use Illuminate\Http\Request;
  */
 class ValidationController extends Controller
 {
-    public function __construct(private AuditTrailService $audit) {}
+    public function __construct(private AuditTrailService $audit, private SignatureService $signatures) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -61,16 +62,37 @@ class ValidationController extends Controller
 
     public function updateStatus(Request $request, string $id): JsonResponse
     {
-        $data = $request->validate(['status' => 'required|in:in_progress,approved,rejected,expired']);
+        $data = $request->validate([
+            'status' => 'required|in:in_progress,approved,rejected,expired',
+            'password' => 'nullable|string',
+        ]);
         $v = Validation::findOrFail($id);
-        $old = $v->status;
-        $v->update(['status' => $data['status']]);
         $user = $request->attributes->get('flink_user');
-        $this->audit->record('qms_validation', $v->id, 'status_change', [
+        $old = $v->status;
+        $meaning = $data['status'] === 'approved' ? 'approved' : null;
+
+        // GMP approval is a signing act — authenticate the signer (Part 11), same rule as the web UI.
+        // Without this check the API could record an "approved" status and a signature_meaning of
+        // "approved" without ever verifying the signer's password.
+        if ($meaning && !$this->signatures->verify((string) ($user['sub'] ?? ''), $data['password'] ?? null)) {
+            return response()->json([
+                'message' => 'A correct password is required to approve this validation (electronic signature).',
+            ], 422);
+        }
+
+        $v->update(['status' => $data['status']]);
+        $auditRow = $this->audit->record('qms_validation', $v->id, 'status_change', [
             'user_id' => $user['sub'] ?? null, 'username' => $user['username'] ?? null,
             'changes' => ['status' => ['old' => $old, 'new' => $v->status]],
-            'signature_meaning' => $data['status'] === 'approved' ? 'approved' : null,
+            'signature_meaning' => $meaning,
         ]);
+        if ($meaning) {
+            $this->signatures->sign(
+                $v->id, null, 'approve', $meaning, 'GMP / validation approval (API)',
+                ['id' => $user['sub'] ?? null, 'username' => $user['username'] ?? null, 'name' => $user['name'] ?? null],
+                $auditRow?->seq, $request->ip(), 'qms_validation'
+            );
+        }
         return response()->json($v);
     }
 

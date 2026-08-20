@@ -174,6 +174,15 @@ def capa_suggest(title: str, description: str = "", type_: str = "non_conformity
     if provider.available():
         try:
             return _capa_via_llm(text, type_, severity, provider)
+        except httpx.HTTPStatusError as exc:
+            # Surface the vendor's actual error (e.g. insufficient_quota, invalid model,
+            # rate limit) in the response itself — journalctl isn't reachable from every
+            # deploy account, so this is the reliable way to diagnose it next time.
+            fallback = _capa_rule_based(text, type_, severity)
+            status = exc.response.status_code if exc.response is not None else "?"
+            fallback["engine"] = f"rule_based ({provider.name}_error: HTTP {status})"
+            fallback["error_detail"] = (exc.response.text[:500] if exc.response is not None else str(exc))
+            return fallback
         except Exception as exc:  # noqa: BLE001 — fall back, never fail the endpoint
             fallback = _capa_rule_based(text, type_, severity)
             fallback["engine"] = f"rule_based ({provider.name}_error: {type(exc).__name__})"

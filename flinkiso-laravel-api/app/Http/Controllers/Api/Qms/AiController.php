@@ -65,7 +65,12 @@ class AiController extends Controller
     {
         if ($g = $this->guard()) return $g;
         $ccp = HaccpCcp::with('logs')->findOrFail($ccpId);
-        $readings = $ccp->logs->map(fn ($l) => ['value' => $l->measured_value !== null ? (float) $l->measured_value : null, 'time' => $l->measured_time])->values()->all();
+        // HaccpCcp::logs() is ordered latest('measured_at') DESC (correct for the UI's log list),
+        // but the trend calculation compares readings[-1] to readings[-3] assuming chronological
+        // (oldest-first) order — re-sort ascending here so the AI service sees the true progression.
+        $readings = $ccp->logs->sortBy('measured_at')->values()
+            ->map(fn ($l) => ['value' => $l->measured_value !== null ? (float) $l->measured_value : null, 'time' => $l->measured_time])
+            ->values()->all();
         $res = $this->ai->haccpAnomaly($readings, $ccp->limit_min !== null ? (float) $ccp->limit_min : null, $ccp->limit_max !== null ? (float) $ccp->limit_max : null);
         return response()->json(['ccp' => $ccp->only(['id', 'name', 'critical_limit']), 'ai' => $res]);
     }
