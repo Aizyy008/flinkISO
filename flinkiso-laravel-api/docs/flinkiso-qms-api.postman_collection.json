@@ -87,7 +87,7 @@
       "item": [
         { "name": "List HACCP plans", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/haccp/plans", "host": ["{{base_url}}"], "path": ["api","qms","haccp","plans"] } } },
         { "name": "Create HACCP plan", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"product\": \"Fresh Milk 3.5%\",\n  \"team\": \"QA Manager, Production Lead\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/haccp/plans", "host": ["{{base_url}}"], "path": ["api","qms","haccp","plans"] } } },
-        { "name": "Log CCP reading (deviation -> CAPA)", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"batch_no\": \"B-12\",\n  \"measured_value\": 68,\n  \"measured_time\": \"08:15\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/haccp/ccps/{{id}}/logs", "host": ["{{base_url}}"], "path": ["api","qms","haccp","ccps","{{id}}","logs"] } } }
+        { "name": "Log CCP reading (deviation -> CAPA)", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"batch_no\": \"B-12\",\n  \"measured_value\": 68,\n  \"measured_time\": \"08:15\",\n  \"measured_at\": \"2026-08-21T08:15:00Z\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/haccp/ccps/{{id}}/logs", "host": ["{{base_url}}"], "path": ["api","qms","haccp","ccps","{{id}}","logs"] } } }
       ]
     },
     {
