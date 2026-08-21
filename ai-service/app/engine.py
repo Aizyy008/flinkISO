@@ -135,11 +135,19 @@ def haccp_anomaly(readings: list[dict], limit_min: Optional[float] = None,
             anomalies.append({"index": i, "value": v, "time": r.get("time"),
                               "reasons": reasons, "severity": "critical" if "limit" in " ".join(reasons) else "warning"})
 
-    # simple drift warning: last 3 readings trending toward a limit
+    # Drift/breach direction from the last 3 readings (chronological order — the
+    # caller is expected to have sorted `readings` by true measurement time, not
+    # submission order). Distinguish "already past the limit and still moving
+    # that way" from "not yet at the limit but heading toward it" — a value that
+    # has already breached should never fall through to "stable".
     trend = "stable"
     if len(vals) >= 3:
         d = vals[-1] - vals[-3]
-        if limit_min is not None and vals[-1] > limit_min and d < 0:
+        if limit_max is not None and vals[-1] > limit_max:
+            trend = "breaching upper limit" if d >= 0 else "breached upper limit, recovering"
+        elif limit_min is not None and vals[-1] < limit_min:
+            trend = "breaching lower limit" if d <= 0 else "breached lower limit, recovering"
+        elif limit_min is not None and vals[-1] > limit_min and d < 0:
             trend = "approaching lower limit"
         elif limit_max is not None and vals[-1] < limit_max and d > 0:
             trend = "approaching upper limit"
