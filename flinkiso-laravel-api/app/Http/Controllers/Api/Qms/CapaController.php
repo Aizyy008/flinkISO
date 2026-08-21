@@ -109,10 +109,20 @@ class CapaController extends Controller
             'effectiveness_notes' => 'required|string',
             'verified' => 'required|boolean',
             'reason' => 'nullable|string|max:255',
+            'password' => 'nullable|string',
         ]);
 
         $capa = Capa::findOrFail($id);
         $actor = $this->actor($request);
+
+        // Effectiveness verification is a signing act — authenticate the signer at the
+        // moment of signing (Part 11). Without this the JWT alone was being treated as
+        // sufficient proof, with no password re-entry at the point of signing.
+        if (!$this->signatures->verify((string) ($actor['id'] ?? ''), $data['password'] ?? null)) {
+            return response()->json([
+                'message' => 'A correct password is required to sign this effectiveness check (electronic signature).',
+            ], 422);
+        }
 
         $capa->effectiveness_notes = $data['effectiveness_notes'];
         $capa->effectiveness_verified = (bool) $data['verified'];

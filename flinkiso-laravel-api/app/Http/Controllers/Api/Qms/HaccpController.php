@@ -102,13 +102,14 @@ class HaccpController extends Controller
             'batch_no' => 'nullable|string|max:255',
             'measured_value' => 'nullable|numeric',
             'measured_time' => 'nullable|string|max:255',
+            'measured_at' => 'nullable|date',
             'notes' => 'nullable|string',
         ]);
         $ccp = HaccpCcp::with('plan')->findOrFail($ccpId);
         $user = $request->attributes->get('flink_user');
         $within = $ccp->isWithinLimit($data['measured_value'] ?? null);
 
-        $log = HaccpCcpLog::create([
+        $attrs = [
             'ccp_id' => $ccp->id, 'plan_id' => $ccp->plan_id,
             'batch_no' => $data['batch_no'] ?? null,
             'measured_value' => $data['measured_value'] ?? null,
@@ -118,7 +119,17 @@ class HaccpController extends Controller
             'result' => $within ? 'ok' : 'deviation',
             'notes' => $data['notes'] ?? null,
             'logged_by' => $user['sub'] ?? null,
-        ]);
+        ];
+        // Only set measured_at when explicitly supplied — omitting the key entirely
+        // (rather than passing null) lets the column's DB-level useCurrent() default
+        // apply, so real-time logging is unaffected. Without a client-suppliable
+        // measured_at, every reading's timestamp is just its insertion time, which
+        // makes the trend calculation depend on submission order rather than the
+        // true chronological order of the readings.
+        if (! empty($data['measured_at'])) {
+            $attrs['measured_at'] = $data['measured_at'];
+        }
+        $log = HaccpCcpLog::create($attrs);
 
         if ($within) {
             return response()->json(['log' => $log, 'result' => 'ok'], 201);

@@ -7,7 +7,9 @@ use App\Models\Qms\ChangeRequest;
 use App\Models\Qms\ControlledCopy;
 use App\Models\Qms\Document;
 use App\Models\Qms\DocumentVersion;
+use App\Models\Qms\AuditTrail;
 use App\Services\Qms\AuditTrailService;
+use App\Services\Qms\SignatureService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -18,7 +20,13 @@ use Illuminate\Http\Request;
  */
 class DocumentControlController extends Controller
 {
-    public function __construct(private AuditTrailService $audit) {}
+    /** Only Approve and Release are signing acts — matches the web UI, never Review/Obsolete. */
+    private const SIGNING_MEANINGS = [
+        'approved' => 'approved',
+        'released' => 'authorized',
+    ];
+
+    public function __construct(private AuditTrailService $audit, private SignatureService $signatures) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -78,6 +86,7 @@ class DocumentControlController extends Controller
         $data = $request->validate([
             'to' => 'required|in:review,approved,released,obsolete,draft',
             'reason' => 'nullable|string|max:255',
+            'password' => 'nullable|string',
         ]);
 
         $doc = Document::findOrFail($id);
@@ -88,17 +97,22 @@ class DocumentControlController extends Controller
             ], 422);
         }
 
+        $user = $request->attributes->get('flink_user');
+        $meaning = self::SIGNING_MEANINGS[$data['to']] ?? null;
+
+        // Approve/release are signing acts — authenticate the signer at the moment of
+        // signing (Part 11), same rule as the web UI. Without this check the API could
+        // record an "approved"/"authorized" signature meaning without ever verifying
+        // the signer's password.
+        if ($meaning && !$this->signatures->verify((string) ($user['sub'] ?? ''), $data['password'] ?? null)) {
+            return response()->json([
+                'message' => 'A correct password is required to sign this action (electronic signature).',
+            ], 422);
+        }
+
         $from = $doc->status;
         $doc->status = $data['to'];
         $doc->save();
-
-        // Approve/release carry an e signature meaning (FDA 21 CFR Part 11).
-        $signatureMeaning = match ($data['to']) {
-            'review' => 'reviewed',
-            'approved' => 'approved',
-            'released' => 'authorized',
-            default => null,
-        };
 
         if ($data['to'] === 'released') {
             DocumentVersion::where('document_id', $doc->id)
@@ -106,10 +120,17 @@ class DocumentControlController extends Controller
                 ->update(['status' => 'released']);
         }
 
-        $user = $request->attributes->get('flink_user');
-        $this->log($doc, 'status_change', $user, [
+        $auditRow = $this->log($doc, 'status_change', $user, [
             'status' => ['old' => $from, 'new' => $doc->status],
-        ], $data['reason'] ?? null, $signatureMeaning);
+        ], $data['reason'] ?? null, $meaning);
+
+        if ($meaning) {
+            $this->signatures->sign(
+                $doc->id, $doc->current_version, $data['to'], $meaning, $data['reason'] ?? null,
+                ['id' => $user['sub'] ?? null, 'username' => $user['username'] ?? null, 'name' => $user['name'] ?? null],
+                $auditRow?->seq, $request->ip(), 'qms_document'
+            );
+        }
 
         return response()->json($doc);
     }
@@ -191,9 +212,9 @@ class DocumentControlController extends Controller
         return response()->json($copy, 201);
     }
 
-    private function log(Document $doc, string $action, ?array $user, array $changes, ?string $reason = null, ?string $signatureMeaning = null): void
+    private function log(Document $doc, string $action, ?array $user, array $changes, ?string $reason = null, ?string $signatureMeaning = null): AuditTrail
     {
-        $this->audit->record('qms_document', $doc->id, $action, [
+        return $this->audit->record('qms_document', $doc->id, $action, [
             'user_id' => $user['sub'] ?? null,
             'username' => $user['username'] ?? null,
             'changes' => $changes,

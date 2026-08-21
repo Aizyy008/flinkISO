@@ -164,13 +164,14 @@ class HaccpController extends Controller
             'batch_no' => 'nullable|string|max:255',
             'measured_value' => 'nullable|numeric',
             'measured_time' => 'nullable|string|max:255',
+            'measured_at' => 'nullable|date',
             'notes' => 'nullable|string',
         ]);
         $ccp = HaccpCcp::with('plan')->findOrFail($ccpId);
         $u = $this->user($request);
 
         $within = $ccp->isWithinLimit($data['measured_value'] ?? null);
-        $log = HaccpCcpLog::create([
+        $attrs = [
             'ccp_id' => $ccp->id,
             'plan_id' => $ccp->plan_id,
             'batch_no' => $data['batch_no'] ?? null,
@@ -181,7 +182,13 @@ class HaccpController extends Controller
             'result' => $within ? 'ok' : 'deviation',
             'notes' => $data['notes'] ?? null,
             'logged_by' => $u['id'],
-        ]);
+        ];
+        // See Api/Qms/HaccpController::logCcp() for why this is conditional rather
+        // than always passed through.
+        if (! empty($data['measured_at'])) {
+            $attrs['measured_at'] = $data['measured_at'];
+        }
+        $log = HaccpCcpLog::create($attrs);
 
         if ($within) {
             return back()->with('ok', 'CCP reading logged (within limit).');
