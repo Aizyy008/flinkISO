@@ -1,11 +1,11 @@
 {
   "info": {
     "name": "FlinkISO QMS API (Milestone 2.2)",
-    "description": "JWT-authenticated REST API for the FlinkISO QMS. Set {{base_url}} (e.g. https://qms.flinkiso.dctrd.us), then run Auth > Login to capture {{token}}; all other requests use it automatically.",
+    "description": "JWT-authenticated REST API for the FlinkISO QMS. base_url is preset to staging (https://qms.flinkiso.dctrd.us). Before running Auth > Login, open that request's body and replace the password field (still the literal placeholder text CHANGE_ME_BEFORE_RUNNING) with a real, current password for the listed account - this file is committed to source control, so a live password must never be baked into it. Once Login succeeds it captures {{token}} and every other request uses it automatically.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "base_url", "value": "http://127.0.0.1:8001" },
+    { "key": "base_url", "value": "https://qms.flinkiso.dctrd.us" },
     { "key": "token", "value": "" },
     { "key": "id", "value": "" }
   ],
@@ -30,7 +30,7 @@
             "auth": { "type": "noauth" },
             "method": "POST",
             "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ],
-            "body": { "mode": "raw", "raw": "{\n  \"username\": \"crf9090@hotmail.com\",\n  \"password\": \"REPLACE_WITH_PASSWORD\"\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"crf9090@hotmail.com\",\n  \"password\": \"CHANGE_ME_BEFORE_RUNNING\"\n}" },
             "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api","auth","login"] }
           }
         },
