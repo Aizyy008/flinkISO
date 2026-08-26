@@ -165,8 +165,6 @@ automatically. Client independently re-ran the same collection and confirmed the
   records/screens"), not a literal implementation of that doc's full estimation menu. Extend via
   `config/iso_overlays.php` (no migration needed) if the client wants more fields or overlays on records
   beyond Incidents. *(Open — optional, not requested yet.)*
-- Demo videos/screenshots (a docx deliverable) are not produced here — capture during the staging demo.
-  *(Still open.)*
 - Email from `qms@dctrd.us`: DKIM + DMARC TXT records **added and verified resolving in OVH DNS,
   confirmed 2026‑08‑18.** SPF was already live. *(Not M2.2 scope, but bundled into the same go-live push
   — now fully done.)*
