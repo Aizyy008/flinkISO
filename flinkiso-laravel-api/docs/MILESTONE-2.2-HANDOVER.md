@@ -57,11 +57,11 @@ Deploy: `php artisan migrate --force`.
   `validation_id`) consumed automatically by the requests that depend on it — no manual variable
   editing needed between requests. All 36 requests carry a status-code assertion.
 - **Test credentials:** `webauth`/JWT both authenticate against the read-only legacy
-  `flinkisodb.users` table, so a test login can't be freshly seeded from the Laravel side. Use the
-  existing account already on file in the shared credentials sheet ("flinkiso v1") — enter its
-  username/password into the Postman environment's `login_username`/`login_password` fields
-  locally; never write the real password into either JSON file (the environment file's committed
-  values are intentionally blank).
+  `flinkisodb.users` table, so a test login can't be freshly seeded from the Laravel side. Test
+  account username: `crf9090@hotmail.com` (active, confirmed working — used for the Newman
+  acceptance run in §6). Password is in the shared credentials sheet ("flinkiso v1") — enter it
+  into the Postman environment's `login_password` field locally; never write the real password
+  into either JSON file (the environment file's committed values are intentionally blank).
 
 ---
 
@@ -118,6 +118,11 @@ Validation create + approve · **ISO overlay stored for all 5 standards** + unkn
 AI health, risk-score (critical), KPI forecast from real results (declining), CAPA suggest from a
 real incident, HACCP anomaly from CCP logs. AI service unit outputs verified independently.
 
+**Postman/Newman acceptance run, 2026-08-26:** ran the actual collection file (not an approximation)
+against staging via `newman run` — **36/36 requests passed, 37/37 assertions passed, 0 failures**,
+full top-to-bottom Collection Runner pass with real JWT auth and all resource IDs chained
+automatically. Client independently re-ran the same collection and confirmed the same result.
+
 > Note: the KPI forecast returns `insufficient_data` for a single data point (correct missing-data
 > rule) and `declining/improving/stable` once ≥2 points exist.
 
@@ -134,39 +139,25 @@ real incident, HACCP anomaly from CCP logs. AI service unit outputs verified ind
 
 ---
 
-## 8. Known limitations / remaining polish — updated 2026‑08‑19
+## 8. Known limitations / remaining polish — updated 2026‑08‑26
 
 - ~~AI service deployment is documented but not yet stood up on a server~~ ~~needs a `systemd` unit~~
   **Both DONE, confirmed 2026‑08‑18.** The AI service runs at `/opt/flinkiso-ai`, is registered with
   `systemd` (`flinkiso-ai.service`), enabled on boot, and active on port 8100.
-- **Still open: FlinkISO's own `.env` has no `AI_*` values set at all** (`grep '^AI_' .env` on the
-  server returns nothing, checked 2026‑08‑19). FlinkISO cannot call the AI service until
-  `AI_SERVICE_ENABLED=true`, `AI_SERVICE_URL=http://127.0.0.1:8100`, and `AI_SERVICE_TOKEN` are added.
-  The AI host **does** enforce a bearer token (confirmed: `POST /ai/risk-score` without a header returns
-  `401 Invalid or missing bearer token`) — get the exact value from whoever has root
-  (`sudo grep AI_SERVICE_TOKEN /opt/flinkiso-ai/.env`), it's not readable by the app's own deploy user.
-- **CAPA suggestions** use the rule-based engine until a working LLM key is set on the AI host. The
-  OpenAI key on file is valid but the OpenAI account has **no billing credit**
-  (`insufficient_quota`/`credit_balance_exhausted`) — add credit at platform.openai.com → Billing, or
-  switch `AI_PROVIDER` to Anthropic/Gemini/Ollama (the provider abstraction in `ai-service/app/providers.py`
-  already supports all of these — just needs that provider's key/env vars set on the AI host).
-  *(Client confirmed 2026‑08‑18 credit will be added; not yet verified as of 2026‑08‑19.)*
-- **Test credentials missing from this handover note** — see §3, flagged there. The client's acceptance
-  doc explicitly requires this; needs a real QMS-side username filled in before final sign-off.
-- **`project_1/DEPLOYMENT.md` (the standalone setup/migration guide) is stale** — it still documents the
-  `milestone_1.2` deploy flow and has no mention of the AI service, JWT API, or ISO overlays added in
-  M2.2. The client's acceptance criterion ("we can follow the setup/migration guide") is satisfied by
-  §7 of *this* handover doc, but if the client specifically opens `DEPLOYMENT.md` they'll find outdated
-  content — worth syncing before calling documentation fully complete.
-- **Open question, not confirmed either way:** the earliest client specs (`Project 1.pdf`,
-  `FlickISO Upgrate.pdf`) describe the REST API layer as built specifically "to integrate Perfex CRM"
-  (pulling HR/assets/products/manufacturing data from a Perfex CRM instance). No Perfex CRM integration
-  exists anywhere in this codebase, and the later, authoritative `FlinkISO_Milestone distribution.docx`
-  (the doc that actually gates payment) describes the API generically with **no mention of Perfex CRM at
-  all** — consistent with this having been superseded during scope negotiation, the same way the ZaiKPI
-  integration scope was later reduced by `Exceptions.txt`. Treated here as dropped, but **this has never
-  been explicitly confirmed with the client in writing** — worth a one-line confirmation before final
-  sign-off so it can't resurface as a "missing deliverable" later.
+- ~~FlinkISO's own `.env` has no `AI_*` values set~~ **DONE, confirmed 2026-08-19.**
+  `AI_SERVICE_ENABLED`, `AI_SERVICE_URL`, and `AI_SERVICE_TOKEN` are set; full chain re-verified
+  end-to-end through FlinkISO's own API (real JWT auth, not a direct port-8100 call).
+- ~~CAPA suggestions use the rule-based engine — no OpenAI billing credit~~ **DONE, confirmed
+  2026-08-20.** Credit was added and independently re-verified (not taken on faith) — `capa-suggest`
+  now returns `"engine":"openai:gpt-4o-mini"` with genuinely contextual output.
+- ~~Test credentials missing from this handover note~~ **DONE** — see §3 (username named, password
+  in the credentials sheet).
+- ~~`project_1/DEPLOYMENT.md` is stale~~ **DONE, 2026-08-26** — added a pointer at its top to this
+  handover doc's §4/§7 for the M2.2-specific additions (AI service, JWT API, ISO overlays, Postman);
+  its own Milestone 1.1 base architecture content is still accurate and left as-is.
+- ~~Perfex CRM API integration — open question~~ **CLOSED, confirmed by client in writing 2026-08-19:**
+  "mentioned in the estimation notes but not included as a milestone deliverable... if required,
+  separate quote." Confirmed out of scope, not a gap.
 - ISO overlays are implemented on **Incidents** (the core NC/deviation record), 5 fields per standard.
   `FlinkISO QMS Expansion.pdf` (the estimation reference doc) lists a much larger menu of possible fields
   per standard (~20+ for ISO 14001 alone) — the 5-field set implemented is an intentional curated subset

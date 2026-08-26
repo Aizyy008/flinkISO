@@ -5,6 +5,13 @@ the same process applies to every later milestone (weeks 2, 3, 4).
 
 Credentials are in `../DEPLOY-CREDENTIALS.txt` (kept outside the repo).
 
+**Milestone 2.2 additions (JWT REST API, AI microservice, ISO overlay fields, Postman
+collection + environment) are not covered below** — this file documents the base
+Laravel/CakePHP two-app architecture from Milestone 1.1, which is still accurate and
+unchanged. For the M2.2-specific deploy steps, see
+`flinkiso-laravel-api/docs/MILESTONE-2.2-HANDOVER.md` §7 (deploy checklist) and §4
+(AI microservice setup) — that is the current, authoritative source for those pieces.
+
 ## Architecture (two apps, two databases, one server)
 
 | App | URL | Database | Notes |
