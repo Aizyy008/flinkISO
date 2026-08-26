@@ -82,8 +82,8 @@
 								"exec": [
 									"pm.test('status is 200', function () { pm.response.to.have.status(200); });",
 									"var j = pm.response.json();",
-									"pm.test('got token', function () { pm.expect(j.token).to.be.a('string'); });",
-									"if (j.token) { pm.collectionVariables.set('token', j.token); }"
+									"pm.test('got token', function () { pm.expect(j.access_token).to.be.a('string'); });",
+									"if (j.access_token) { pm.collectionVariables.set('token', j.access_token); }"
 								]
 							}
 						}
