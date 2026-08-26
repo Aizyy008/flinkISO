@@ -19,7 +19,7 @@ hardening). Status: **implemented, tested, and deployed to staging** (`main` is 
 | ISO overlay fields (5 standards), config-driven | `config/iso_overlays.php` + `iso_standard`/`iso_overlay` on `qms_incidents` | ✅ |
 | FastAPI AI microservice (risk / KPI forecast / CAPA suggest / HACCP anomaly) | `ai-service/` (Python) | ✅ |
 | FlinkISO ↔ AI integration | `config/ai.php`, `app/Services/Ai/AiClient.php`, `Api/Qms/AiController.php` | ✅ |
-| Postman collection (full API) | `docs/flinkiso-qms-api.postman_collection.json` | ✅ |
+| Postman collection + environment (full API, chained, status-asserted) | `docs/flinkiso-qms-api.postman_collection.json` + `.postman_environment.json` | ✅ |
 | Testing | 23-check e2e (see §6) | ✅ |
 
 The FlinkISO REST API for the **M1 modules** (documents, incidents, CAPA, risk, evidence,
@@ -47,15 +47,21 @@ Deploy: `php artisan migrate --force`.
   workflows, notifications, audit-trail, **kpis** (+ `/dashboard`, `/results`, `/forecast`),
   **trainings**, **assets** (+calibrations), **haccp** (plans/steps/hazards/ccps/logs),
   **validations**, and **ai** (health, risk-score, capa-suggest, anomaly).
-- **63 API routes total.** Import `docs/flinkiso-qms-api.postman_collection.json`, set `{{base_url}}`,
-  run **Auth → Login** (fill the password) to capture `{{token}}`, then run any request.
-- **Test credentials — ⚠️ MISSING, needs filling in before this counts as a complete handover note**
-  (the client's acceptance doc explicitly requires "test credentials" in the final handover note; this
-  doc doesn't have any yet). `webauth`/JWT both authenticate against the read-only legacy
-  `flinkisodb.users` table, so a test login can't be freshly seeded from the Laravel side — either name
-  an existing QMS user here, or have one created directly in `flinkisodb.users` and record its
-  username here (never the password itself — reference where it's stored, e.g.
-  `DEPLOY-CREDENTIALS.txt`).
+- **63 API routes total.** Import both `docs/flinkiso-qms-api.postman_collection.json` **and**
+  `docs/flinkiso-qms-api.postman_environment.json`, select the imported environment (top-right
+  environment dropdown), then fill in `login_username` / `login_password` there — never in the
+  collection file itself, which is committed to source control. Run **Collection Runner** top to
+  bottom (or **Auth → Login** individually first): Login captures `{{token}}` and `{{me_user_id}}`,
+  and every Create request captures its own `*_id` variable (`document_id`, `incident_id`,
+  `capa_id`, `risk_id`, `kpi_id`, `training_id`, `asset_id`, `haccp_plan_id`, `ccp_id`,
+  `validation_id`) consumed automatically by the requests that depend on it — no manual variable
+  editing needed between requests. All 36 requests carry a status-code assertion.
+- **Test credentials:** `webauth`/JWT both authenticate against the read-only legacy
+  `flinkisodb.users` table, so a test login can't be freshly seeded from the Laravel side. Use the
+  existing account already on file in the shared credentials sheet ("flinkiso v1") — enter its
+  username/password into the Postman environment's `login_username`/`login_password` fields
+  locally; never write the real password into either JSON file (the environment file's committed
+  values are intentionally blank).
 
 ---
 
@@ -124,7 +130,7 @@ real incident, HACCP anomaly from CCP logs. AI service unit outputs verified ind
 2. Set `.env`: `AI_SERVICE_ENABLED/URL/TOKEN` (and re-cache).
 3. Stand up `ai-service/` (venv + uvicorn, persistent), set its `.env` (`AI_SERVICE_TOKEN`,
    `OPENAI_API_KEY`).
-4. Import the Postman collection, log in, smoke-test the endpoints.
+4. Import the Postman collection + environment, fill in the environment's credentials, run Collection Runner top to bottom.
 
 ---
 

@@ -1,112 +1,1572 @@
 {
-  "info": {
-    "name": "FlinkISO QMS API (Milestone 2.2)",
-    "description": "JWT-authenticated REST API for the FlinkISO QMS. base_url is preset to staging (https://qms.flinkiso.dctrd.us). Before running Auth > Login, open that request's body and replace the password field (still the literal placeholder text CHANGE_ME_BEFORE_RUNNING) with a real, current password for the listed account - this file is committed to source control, so a live password must never be baked into it. Once Login succeeds it captures {{token}} and every other request uses it automatically.",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "variable": [
-    { "key": "base_url", "value": "https://qms.flinkiso.dctrd.us" },
-    { "key": "token", "value": "" },
-    { "key": "id", "value": "" }
-  ],
-  "auth": {
-    "type": "bearer",
-    "bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ]
-  },
-  "item": [
-    {
-      "name": "Auth",
-      "item": [
-        {
-          "name": "Login",
-          "event": [
-            { "listen": "test", "script": { "exec": [
-              "var j = pm.response.json();",
-              "if (j.token) { pm.collectionVariables.set('token', j.token); }",
-              "pm.test('got token', function () { pm.expect(j.token).to.be.a('string'); });"
-            ], "type": "text/javascript" } }
-          ],
-          "request": {
-            "auth": { "type": "noauth" },
-            "method": "POST",
-            "header": [ { "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" } ],
-            "body": { "mode": "raw", "raw": "{\n  \"username\": \"crf9090@hotmail.com\",\n  \"password\": \"CHANGE_ME_BEFORE_RUNNING\"\n}" },
-            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api","auth","login"] }
-          }
-        },
-        { "name": "Me", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/me", "host": ["{{base_url}}"], "path": ["api","me"] } } },
-        { "name": "Health (public)", "request": { "auth": {"type":"noauth"}, "method": "GET", "url": { "raw": "{{base_url}}/api/health", "host": ["{{base_url}}"], "path": ["api","health"] } } }
-      ]
-    },
-    {
-      "name": "Document Control",
-      "item": [
-        { "name": "List documents", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/documents", "host": ["{{base_url}}"], "path": ["api","qms","documents"] } } },
-        { "name": "Create document", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Quality Manual\",\n  \"doc_type\": \"manual\",\n  \"standard\": \"ISO 9001\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/documents", "host": ["{{base_url}}"], "path": ["api","qms","documents"] } } },
-        { "name": "Transition document", "request": { "method": "PATCH", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"to\": \"review\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/documents/{{id}}/transition", "host": ["{{base_url}}"], "path": ["api","qms","documents","{{id}}","transition"] } } }
-      ]
-    },
-    {
-      "name": "Incidents & CAPA",
-      "item": [
-        { "name": "List incidents", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/incidents?status=open", "host": ["{{base_url}}"], "path": ["api","qms","incidents"], "query": [{"key":"status","value":"open"}] } } },
-        { "name": "Create incident (+ ISO 45001 overlay)", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Slip on wet floor\",\n  \"type\": \"incident\",\n  \"severity\": \"high\",\n  \"iso_standard\": \"ISO 45001\",\n  \"iso_overlay\": { \"injury_type\": \"Sprain\", \"body_part\": \"Ankle\", \"days_lost\": 3 }\n}" }, "url": { "raw": "{{base_url}}/api/qms/incidents", "host": ["{{base_url}}"], "path": ["api","qms","incidents"] } } },
-        { "name": "Update incident status", "request": { "method": "PATCH", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"status\": \"investigating\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/incidents/{{id}}/status", "host": ["{{base_url}}"], "path": ["api","qms","incidents","{{id}}","status"] } } },
-        { "name": "List CAPA", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/capa", "host": ["{{base_url}}"], "path": ["api","qms","capa"] } } },
-        { "name": "Verify CAPA effectiveness", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"effective\": true,\n  \"notes\": \"No recurrence in 90 days\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/capa/{{id}}/verify", "host": ["{{base_url}}"], "path": ["api","qms","capa","{{id}}","verify"] } } }
-      ]
-    },
-    {
-      "name": "Risk & Audit Trail",
-      "item": [
-        { "name": "List risks", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/risks", "host": ["{{base_url}}"], "path": ["api","qms","risks"] } } },
-        { "name": "Create risk", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Supplier delivery failure\",\n  \"likelihood\": 3,\n  \"severity\": 4,\n  \"detection\": 2\n}" }, "url": { "raw": "{{base_url}}/api/qms/risks", "host": ["{{base_url}}"], "path": ["api","qms","risks"] } } },
-        { "name": "Verify audit trail chain", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/audit-trail/verify", "host": ["{{base_url}}"], "path": ["api","qms","audit-trail","verify"] } } }
-      ]
-    },
-    {
-      "name": "KPI",
-      "item": [
-        { "name": "List KPIs", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/kpis?area=quality", "host": ["{{base_url}}"], "path": ["api","qms","kpis"], "query": [{"key":"area","value":"quality"}] } } },
-        { "name": "KPI dashboard (calculated)", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/kpis/dashboard", "host": ["{{base_url}}"], "path": ["api","qms","kpis","dashboard"] } } },
-        { "name": "Create KPI (16 fields)", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"name\": \"On-Time Delivery\",\n  \"area\": \"quality\",\n  \"standard\": \"ISO 9001\",\n  \"unit\": \"%\",\n  \"target_value\": 95,\n  \"warning_threshold\": 90,\n  \"critical_threshold\": 85,\n  \"direction\": \"higher_better\",\n  \"aggregation\": \"monthly\",\n  \"frequency\": \"Monthly\",\n  \"data_source\": \"ERP export\",\n  \"related_department\": \"Logistics\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/kpis", "host": ["{{base_url}}"], "path": ["api","qms","kpis"] } } },
-        { "name": "Record KPI result", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"period_label\": \"2026-05\",\n  \"period_date\": \"2026-05-31\",\n  \"value\": 88\n}" }, "url": { "raw": "{{base_url}}/api/qms/kpis/{{id}}/results", "host": ["{{base_url}}"], "path": ["api","qms","kpis","{{id}}","results"] } } }
-      ]
-    },
-    {
-      "name": "Training & Calibration",
-      "item": [
-        { "name": "List trainings", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/trainings", "host": ["{{base_url}}"], "path": ["api","qms","trainings"] } } },
-        { "name": "Assign training", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"user_id\": \"<flink-user-uuid>\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/trainings/{{id}}/assign", "host": ["{{base_url}}"], "path": ["api","qms","trainings","{{id}}","assign"] } } },
-        { "name": "List assets (with status)", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/assets", "host": ["{{base_url}}"], "path": ["api","qms","assets"] } } },
-        { "name": "Record calibration", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"performed_date\": \"2026-07-01\",\n  \"result\": \"pass\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/assets/{{id}}/calibrations", "host": ["{{base_url}}"], "path": ["api","qms","assets","{{id}}","calibrations"] } } }
-      ]
-    },
-    {
-      "name": "HACCP",
-      "item": [
-        { "name": "List HACCP plans", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/haccp/plans", "host": ["{{base_url}}"], "path": ["api","qms","haccp","plans"] } } },
-        { "name": "Create HACCP plan", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"product\": \"Fresh Milk 3.5%\",\n  \"team\": \"QA Manager, Production Lead\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/haccp/plans", "host": ["{{base_url}}"], "path": ["api","qms","haccp","plans"] } } },
-        { "name": "Log CCP reading (deviation -> CAPA)", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"batch_no\": \"B-12\",\n  \"measured_value\": 68,\n  \"measured_time\": \"08:15\",\n  \"measured_at\": \"2026-08-21T08:15:00Z\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/haccp/ccps/{{id}}/logs", "host": ["{{base_url}}"], "path": ["api","qms","haccp","ccps","{{id}}","logs"] } } }
-      ]
-    },
-    {
-      "name": "GMP / Validation",
-      "item": [
-        { "name": "List validations", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/validations", "host": ["{{base_url}}"], "path": ["api","qms","validations"] } } },
-        { "name": "Create validation", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"type\": \"equipment_oq\",\n  \"title\": \"Pasteurizer OQ 2026\",\n  \"subject\": \"Pasteurizer Line 1\",\n  \"result\": \"pass\",\n  \"valid_until\": \"2027-07-20\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/validations", "host": ["{{base_url}}"], "path": ["api","qms","validations"] } } },
-        { "name": "Approve validation", "request": { "method": "PATCH", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"status\": \"approved\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/validations/{{id}}/status", "host": ["{{base_url}}"], "path": ["api","qms","validations","{{id}}","status"] } } }
-      ]
-    },
-    {
-      "name": "AI microservice",
-      "item": [
-        { "name": "AI health", "request": { "method": "GET", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/ai/health", "host": ["{{base_url}}"], "path": ["api","qms","ai","health"] } } },
-        { "name": "Risk score", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"},{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"likelihood\": 4,\n  \"severity\": 5,\n  \"detection\": 3,\n  \"context\": \"Listeria risk in pasteurization\"\n}" }, "url": { "raw": "{{base_url}}/api/qms/ai/risk-score", "host": ["{{base_url}}"], "path": ["api","qms","ai","risk-score"] } } },
-        { "name": "KPI forecast (from stored results)", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/kpis/{{id}}/forecast", "host": ["{{base_url}}"], "path": ["api","qms","kpis","{{id}}","forecast"] } } },
-        { "name": "CAPA suggestions (from incident)", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/incidents/{{id}}/capa-suggest", "host": ["{{base_url}}"], "path": ["api","qms","incidents","{{id}}","capa-suggest"] } } },
-        { "name": "HACCP anomaly (from CCP logs)", "request": { "method": "POST", "header": [{"key":"Accept","value":"application/json"}], "url": { "raw": "{{base_url}}/api/qms/haccp/ccps/{{id}}/anomaly", "host": ["{{base_url}}"], "path": ["api","qms","haccp","ccps","{{id}}","anomaly"] } } }
-      ]
-    }
-  ]
+	"info": {
+		"name": "FlinkISO QMS API (Milestone 2.2)",
+		"description": "JWT-authenticated REST API for the FlinkISO QMS. Import the companion flinkiso-qms-api.postman_environment.json and fill in login_username/login_password there (never in this file — it is committed to source control). Run top-to-bottom via Collection Runner: Login captures {{token}} and {{me_user_id}}; every Create request captures its own resource_id variable (document_id, incident_id, capa_id, risk_id, kpi_id, training_id, asset_id, haccp_plan_id, ccp_id, validation_id) consumed by the requests that depend on it, so no manual variable editing is needed between requests.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "https://qms.flinkiso.dctrd.us"
+		},
+		{
+			"key": "token",
+			"value": ""
+		},
+		{
+			"key": "me_user_id",
+			"value": ""
+		},
+		{
+			"key": "document_id",
+			"value": ""
+		},
+		{
+			"key": "incident_id",
+			"value": ""
+		},
+		{
+			"key": "capa_id",
+			"value": ""
+		},
+		{
+			"key": "risk_id",
+			"value": ""
+		},
+		{
+			"key": "kpi_id",
+			"value": ""
+		},
+		{
+			"key": "training_id",
+			"value": ""
+		},
+		{
+			"key": "asset_id",
+			"value": ""
+		},
+		{
+			"key": "haccp_plan_id",
+			"value": ""
+		},
+		{
+			"key": "ccp_id",
+			"value": ""
+		},
+		{
+			"key": "validation_id",
+			"value": ""
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+									"var j = pm.response.json();",
+									"pm.test('got token', function () { pm.expect(j.token).to.be.a('string'); });",
+									"if (j.token) { pm.collectionVariables.set('token', j.token); }"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"{{login_username}}\",\n  \"password\": \"{{login_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					}
+				},
+				{
+					"name": "Me",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"me"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+									"var j = pm.response.json();",
+									"if (j.user && j.user.sub) { pm.collectionVariables.set('me_user_id', j.user.sub); }"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Health (public)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"health"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Document Control",
+			"item": [
+				{
+					"name": "List documents",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/qms/documents",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"documents"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create document",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"doc_number\": \"DOC-{{$timestamp}}\",\n  \"title\": \"Quality Manual\",\n  \"category\": \"Policy\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/qms/documents",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"documents"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 201', function () { pm.response.to.have.status(201); });",
+									"var j = pm.response.json();",
+									"if (j.id !== undefined) { pm.collectionVariables.set('document_id', j.id); }"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Transition document",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"to\": \"review\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/qms/documents/{{document_id}}/transition",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"documents",
+								"{{document_id}}",
+								"transition"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Incidents & CAPA",
+			"item": [
+				{
+					"name": "List incidents",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/qms/incidents?status=open",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"incidents"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "open"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create incident (+ ISO 45001 overlay)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Slip on wet floor\",\n  \"type\": \"incident\",\n  \"severity\": \"critical\",\n  \"iso_standard\": \"ISO 45001\",\n  \"iso_overlay\": {\n    \"injury_type\": \"Sprain\",\n    \"body_part\": \"Ankle\",\n    \"days_lost\": 3\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/qms/incidents",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"incidents"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 201', function () { pm.response.to.have.status(201); });",
+									"var j = pm.response.json();",
+									"if (j.id) { pm.collectionVariables.set('incident_id', j.id); }",
+									"// severity 'critical' triggers the seeded auto-CAPA workflow rule; capa_id",
+									"// is captured here if it fired, else 'List CAPA' below fills it in as a fallback.",
+									"if (j.capas && j.capas.length) { pm.collectionVariables.set('capa_id', j.capas[0].id); }"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Update incident status",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"investigating\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/qms/incidents/{{incident_id}}/status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"incidents",
+								"{{incident_id}}",
+								"status"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "List CAPA",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/qms/capa",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"capa"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+									"var j = pm.response.json();",
+									"var items = j.data || j;",
+									"if (!pm.collectionVariables.get('capa_id') && items && items.length) {",
+									"    pm.collectionVariables.set('capa_id', items[0].id);",
+									"}"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Verify CAPA effectiveness",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"effectiveness_notes\": \"No recurrence in 90 days\",\n  \"verified\": true,\n  \"reason\": \"90-day follow-up\",\n  \"password\": \"{{login_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/qms/capa/{{capa_id}}/verify",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"capa",
+								"{{capa_id}}",
+								"verify"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Risk & Audit Trail",
+			"item": [
+				{
+					"name": "List risks",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/qms/risks",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"risks"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create risk",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Supplier delivery failure\",\n  \"likelihood\": 3,\n  \"severity\": 4,\n  \"detection\": 2\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/qms/risks",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"risks"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 201', function () { pm.response.to.have.status(201); });",
+									"var j = pm.response.json();",
+									"if (j.id !== undefined) { pm.collectionVariables.set('risk_id', j.id); }"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Verify audit trail chain",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/qms/audit-trail/verify",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"audit-trail",
+								"verify"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "KPI",
+			"item": [
+				{
+					"name": "List KPIs",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/qms/kpis?area=quality",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"kpis"
+							],
+							"query": [
+								{
+									"key": "area",
+									"value": "quality"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "KPI dashboard (calculated)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/qms/kpis/dashboard",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"kpis",
+								"dashboard"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create KPI (16 fields)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"On-Time Delivery\",\n  \"area\": \"quality\",\n  \"standard\": \"ISO 9001\",\n  \"unit\": \"%\",\n  \"target_value\": 95,\n  \"warning_threshold\": 90,\n  \"critical_threshold\": 85,\n  \"direction\": \"higher_better\",\n  \"aggregation\": \"monthly\",\n  \"frequency\": \"Monthly\",\n  \"data_source\": \"ERP export\",\n  \"related_department\": \"Logistics\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/qms/kpis",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"kpis"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 201', function () { pm.response.to.have.status(201); });",
+									"var j = pm.response.json();",
+									"if (j.id !== undefined) { pm.collectionVariables.set('kpi_id', j.id); }"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Record KPI result",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"period_label\": \"2026-05\",\n  \"period_date\": \"2026-05-31\",\n  \"value\": 88\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/qms/kpis/{{kpi_id}}/results",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"kpis",
+								"{{kpi_id}}",
+								"results"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 201', function () { pm.response.to.have.status(201); });"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Training & Calibration",
+			"item": [
+				{
+					"name": "List trainings",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/qms/trainings",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"trainings"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+									"var j = pm.response.json(); var items = j.data || j;",
+									"if (!pm.collectionVariables.get('training_id') && items && items.length) { pm.collectionVariables.set('training_id', items[0].id); }"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create training",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/qms/trainings",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"trainings"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Internal Auditor Training\",\n  \"category\": \"Quality\",\n  \"validity_months\": 24,\n  \"mandatory\": true\n}"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 201', function () { pm.response.to.have.status(201); });",
+									"var j = pm.response.json();",
+									"if (j.id !== undefined) { pm.collectionVariables.set('training_id', j.id); }"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Assign training",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user_id\": \"{{me_user_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/qms/trainings/{{training_id}}/assign",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"trainings",
+								"{{training_id}}",
+								"assign"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 201', function () { pm.response.to.have.status(201); });"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "List assets (with status)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/qms/assets",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"assets"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+									"var j = pm.response.json(); var items = j.data || j;",
+									"if (!pm.collectionVariables.get('asset_id') && items && items.length) { pm.collectionVariables.set('asset_id', items[0].id); }"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create asset",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/qms/assets",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"assets"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Digital Thermometer #4\",\n  \"asset_type\": \"Instrument\",\n  \"calibration_frequency_months\": 6\n}"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 201', function () { pm.response.to.have.status(201); });",
+									"var j = pm.response.json();",
+									"if (j.id !== undefined) { pm.collectionVariables.set('asset_id', j.id); }"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Record calibration",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"performed_date\": \"2026-07-01\",\n  \"result\": \"pass\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/qms/assets/{{asset_id}}/calibrations",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"assets",
+								"{{asset_id}}",
+								"calibrations"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 201', function () { pm.response.to.have.status(201); });"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "HACCP",
+			"item": [
+				{
+					"name": "List HACCP plans",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/qms/haccp/plans",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"haccp",
+								"plans"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create HACCP plan",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"product\": \"Fresh Milk 3.5%\",\n  \"team\": \"QA Manager, Production Lead\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/qms/haccp/plans",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"haccp",
+								"plans"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 201', function () { pm.response.to.have.status(201); });",
+									"var j = pm.response.json();",
+									"if (j.id !== undefined) { pm.collectionVariables.set('haccp_plan_id', j.id); }"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Add CCP to plan",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Pasteurization CCP\",\n  \"critical_limit\": \">=72C for >=15s\",\n  \"limit_min\": 72,\n  \"monitor_what\": \"Temperature & hold time\",\n  \"monitor_how\": \"Automatic temperature recorder\",\n  \"monitor_frequency\": \"Continuous\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/qms/haccp/plans/{{haccp_plan_id}}/ccps",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"haccp",
+								"plans",
+								"{{haccp_plan_id}}",
+								"ccps"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 201', function () { pm.response.to.have.status(201); });",
+									"var j = pm.response.json();",
+									"if (j.id !== undefined) { pm.collectionVariables.set('ccp_id', j.id); }"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Log CCP reading (deviation -> CAPA)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"batch_no\": \"B-12\",\n  \"measured_value\": 68,\n  \"measured_time\": \"08:15\",\n  \"measured_at\": \"2026-08-21T08:15:00Z\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/qms/haccp/ccps/{{ccp_id}}/logs",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"haccp",
+								"ccps",
+								"{{ccp_id}}",
+								"logs"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 201', function () { pm.response.to.have.status(201); });"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "GMP / Validation",
+			"item": [
+				{
+					"name": "List validations",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/qms/validations",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"validations"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Create validation",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"equipment_oq\",\n  \"title\": \"Pasteurizer OQ 2026\",\n  \"subject\": \"Pasteurizer Line 1\",\n  \"result\": \"pass\",\n  \"valid_until\": \"2027-07-20\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/qms/validations",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"validations"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 201', function () { pm.response.to.have.status(201); });",
+									"var j = pm.response.json();",
+									"if (j.id !== undefined) { pm.collectionVariables.set('validation_id', j.id); }"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Approve validation",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"approved\",\n  \"password\": \"{{login_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/qms/validations/{{validation_id}}/status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"validations",
+								"{{validation_id}}",
+								"status"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "AI microservice",
+			"item": [
+				{
+					"name": "AI health",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/qms/ai/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"ai",
+								"health"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Risk score",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"likelihood\": 4,\n  \"severity\": 5,\n  \"detection\": 3,\n  \"context\": \"Listeria risk in pasteurization\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/qms/ai/risk-score",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"ai",
+								"risk-score"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "KPI forecast (from stored results)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/qms/kpis/{{kpi_id}}/forecast",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"kpis",
+								"{{kpi_id}}",
+								"forecast"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "CAPA suggestions (from incident)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/qms/incidents/{{incident_id}}/capa-suggest",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"incidents",
+								"{{incident_id}}",
+								"capa-suggest"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "HACCP anomaly (from CCP logs)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/qms/haccp/ccps/{{ccp_id}}/anomaly",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"qms",
+								"haccp",
+								"ccps",
+								"{{ccp_id}}",
+								"anomaly"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('status is 200', function () { pm.response.to.have.status(200); });"
+								]
+							}
+						}
+					]
+				}
+			]
+		}
+	]
 }
